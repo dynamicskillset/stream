@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "Stream",
+  "version": "0.1.0",
+  "description": "Velocity-based RSS reader. Articles arrive, linger, and fade.",
+  "background": {
+    "service_worker": "dist/background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "Open Stream"
+  },
+  "permissions": [
+    "storage",
+    "notifications"
+  ],
+  "optional_permissions": [
+    "<all_urls>"
+  ],
+  "host_permissions": []
+}

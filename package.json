@@ -1,0 +1,21 @@
+{
+  "name": "stream",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "packages/core",
+    "packages/web",
+    "packages/extension"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w packages/web",
+    "build": "npm run build -w packages/core && npm run build -w packages/web && npm run build -w packages/extension",
+    "build:web": "npm run build -w packages/core && npm run build -w packages/web",
+    "build:extension": "npm run build -w packages/core && npm run build -w packages/extension"
+  },
+  "devDependencies": {
+    "@preact/preset-vite": "^2.8.0",
+    "typescript": "^5.5.0",
+    "vite": "^6.0.0"
+  }
+}
