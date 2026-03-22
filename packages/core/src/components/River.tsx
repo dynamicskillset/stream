@@ -9,6 +9,7 @@ interface RiverProps {
   items: ScoredArticle[];
   focusedIndex: number;
   sourceMap: Map<string, Source>;
+  savedIds: Set<string>;
   pendingUndo: { article: Article } | null;
   onDismiss: (id: string) => void;
   onSave: (id: string) => void;
@@ -20,6 +21,7 @@ export function River({
   items,
   focusedIndex,
   sourceMap,
+  savedIds,
   pendingUndo,
   onDismiss,
   onSave,
@@ -58,6 +60,7 @@ export function River({
             scored={scored}
             source={source}
             isFocused={index === focusedIndex}
+            isSaved={savedIds.has(scored.article.id)}
             onDismiss={onDismiss}
             onSave={onSave}
             onOpen={onOpen}

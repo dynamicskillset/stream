@@ -16,6 +16,7 @@ export interface RiverHook {
   items: ScoredArticle[];
   focusedIndex: number;
   pendingUndo: PendingUndo | null;
+  savedIds: Set<string>;
   dismiss: (id: string) => void;
   save: (id: string) => void;
   undo: () => void;
@@ -25,10 +26,12 @@ export interface RiverHook {
 export function useRiver(
   initialItems: ScoredArticle[],
   onOpen?: (article: Article) => void,
+  onSave?: (article: Article) => Promise<void>,
 ): RiverHook {
   const [items, setItems] = useState<ScoredArticle[]>(initialItems);
   const [focusedIndex, setFocusedIndex] = useState(-1);
   const [pendingUndo, setPendingUndo] = useState<DismissedItem | null>(null);
+  const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
 
   // Tracks dismissed IDs so a refresh doesn't resurrect them
   const dismissedIds = useRef<Set<string>>(new Set());
@@ -68,9 +71,19 @@ export function useRiver(
   }, []);
 
   const save = useCallback((id: string) => {
-    // TODO: Phase 1 — call adapter.setArticleStarred
-    console.log('[stream] saved:', id);
-  }, []);
+    const { items: cur } = stateRef.current;
+    const found = cur.find(s => s.article.id === id);
+    if (!found) return;
+
+    setSavedIds(prev => new Set([...prev, id]));
+
+    if (onSave) {
+      onSave(found.article).catch(() => {
+        // Revert optimistic update on failure
+        setSavedIds(prev => { const next = new Set(prev); next.delete(id); return next; });
+      });
+    }
+  }, [onSave]);
 
   const undo = useCallback(() => {
     const existing = stateRef.current.pendingUndo;
@@ -144,5 +157,5 @@ export function useRiver(
     return () => window.removeEventListener('keydown', handler);
   }, [dismiss, save, undo, onOpen]);
 
-  return { items, focusedIndex, pendingUndo: pendingUndo ? { article: pendingUndo.scored.article } : null, dismiss, save, undo, openItem };
+  return { items, focusedIndex, pendingUndo: pendingUndo ? { article: pendingUndo.scored.article } : null, savedIds, dismiss, save, undo, openItem };
 }

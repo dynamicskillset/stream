@@ -1,5 +1,6 @@
 import { useState } from 'preact/hooks';
 import { FreshRSSAdapter } from '../adapters/freshrss.js';
+import { FeedbinAdapter } from '../adapters/feedbin.js';
 import type { StreamAdapter, AdapterConfig } from '../types.js';
 import styles from './ConnectScreen.module.css';
 
@@ -22,12 +23,16 @@ export function ConnectScreen({ onConnect, initialError }: ConnectScreenProps) {
     setLoading(true);
 
     try {
-      const adapter = new FreshRSSAdapter();
-      const config: AdapterConfig = {
-        baseUrl:  url.replace(/\/$/, ''),
-        username: user,
-        password: pass,
-      };
+      let adapter: StreamAdapter;
+      let config: AdapterConfig;
+
+      if (backend === 'feedbin') {
+        adapter = new FeedbinAdapter();
+        config  = { username: user, password: pass };
+      } else {
+        adapter = new FreshRSSAdapter();
+        config  = { baseUrl: url.replace(/\/$/, ''), username: user, password: pass };
+      }
 
       const result = await adapter.authenticate(config);
 
@@ -36,7 +41,7 @@ export function ConnectScreen({ onConnect, initialError }: ConnectScreenProps) {
         return;
       }
 
-      onConnect(adapter, { ...config, adapterId: 'freshrss' });
+      onConnect(adapter, { ...config, adapterId: backend });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Connection failed.');
     } finally {
@@ -62,13 +67,12 @@ export function ConnectScreen({ onConnect, initialError }: ConnectScreenProps) {
             FreshRSS
           </button>
           <button
-            class={`${styles.tab} ${styles.disabled}`}
+            class={`${styles.tab} ${backend === 'feedbin' ? styles.active : ''}`}
             role="tab"
-            aria-selected={false}
-            disabled
+            aria-selected={backend === 'feedbin'}
+            onClick={() => setBackend('feedbin')}
           >
             Feedbin
-            <span class={styles.comingSoon}>coming soon</span>
           </button>
         </div>
 

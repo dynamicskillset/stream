@@ -24,6 +24,7 @@ interface RiverCardProps {
   scored: ScoredArticle;
   source: Source;
   isFocused: boolean;
+  isSaved: boolean;
   onDismiss: (id: string) => void;
   onSave: (id: string) => void;
   onOpen: (id: string) => void;
@@ -34,6 +35,7 @@ export function RiverCard({
   scored,
   source,
   isFocused,
+  isSaved,
   onDismiss,
   onSave,
   onOpen,
@@ -84,12 +86,13 @@ export function RiverCard({
 
         <div class={styles.actions}>
           <button
-            class={`${styles.actionBtn} ${styles.saveBtn}`}
+            class={`${styles.actionBtn} ${styles.saveBtn} ${isSaved ? styles.saveBtnActive : ''}`}
             onClick={() => onSave(article.id)}
-            aria-label="Save to Read Later"
-            title="Save"
+            aria-label={isSaved ? 'Saved' : 'Save to Read Later'}
+            title={isSaved ? 'Saved' : 'Save'}
+            aria-pressed={isSaved}
           >
-            &#x2661;
+            {isSaved ? '\u2665' : '\u2661'}
           </button>
           <button
             class={`${styles.actionBtn} ${styles.dismissBtn}`}

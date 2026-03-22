@@ -144,6 +144,10 @@
   color: var(--accent-saved);
 }
 
+.saveBtnActive {
+  color: var(--accent-saved);
+}
+
 .dismissBtn:hover {
   color: var(--text);
 }

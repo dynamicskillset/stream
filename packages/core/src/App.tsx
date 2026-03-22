@@ -8,6 +8,7 @@ import { ConnectScreen } from './components/ConnectScreen.js';
 import { VelocitySettings } from './components/VelocitySettings.js';
 import { ReadingView } from './components/ReadingView.js';
 import { FreshRSSAdapter } from './adapters/freshrss.js';
+import { FeedbinAdapter } from './adapters/feedbin.js';
 import type { Article, Source, StreamAdapter, AdapterConfig } from './types.js';
 import './theme.css';
 
@@ -188,7 +189,9 @@ export function App() {
     const saved = loadSavedConnection();
     if (!saved) return;
 
-    const adapter = new FreshRSSAdapter();
+    const adapter = saved.adapterId === 'feedbin'
+      ? new FeedbinAdapter()
+      : new FreshRSSAdapter();
     adapter.authenticate(saved).then(result => {
       if (result.success) {
         loadData(adapter);
@@ -336,10 +339,16 @@ interface ReadyViewProps {
   hidden?: boolean;
 }
 
-function ReadyView({ sources, articles, now, onOpen, hidden }: ReadyViewProps) {
+function ReadyView({ adapter, sources, articles, now, onOpen, hidden }: ReadyViewProps) {
   const sourceMap   = new Map(sources.map(s => [s.id, s]));
   const scoredItems = scoreRiver(articles, sourceMap, now);
-  const river       = useRiver(scoredItems, onOpen);
+
+  const handleSave = useCallback(
+    (article: Article) => adapter.setArticleStarred(article.id, true),
+    [adapter],
+  );
+
+  const river = useRiver(scoredItems, onOpen, handleSave);
 
   return (
     <div style={hidden ? { display: 'none' } : undefined}>
@@ -347,6 +356,7 @@ function ReadyView({ sources, articles, now, onOpen, hidden }: ReadyViewProps) {
         items={river.items}
         focusedIndex={river.focusedIndex}
         sourceMap={sourceMap}
+        savedIds={river.savedIds}
         pendingUndo={river.pendingUndo}
         onDismiss={river.dismiss}
         onSave={river.save}
