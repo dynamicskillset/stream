@@ -11,7 +11,8 @@
     "dev": "npm run dev -w packages/web",
     "build": "npm run build -w packages/core && npm run build -w packages/web && npm run build -w packages/extension",
     "build:web": "npm run build -w packages/core && npm run build -w packages/web",
-    "build:extension": "npm run build -w packages/core && npm run build -w packages/extension"
+    "build:extension": "npm run build -w packages/core && npm run build -w packages/extension",
+    "package:extension": "npm run build:extension && npm run package -w packages/extension"
   },
   "devDependencies": {
     "@preact/preset-vite": "^2.8.0",

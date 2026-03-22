@@ -1,5 +1,5 @@
-import { useState } from 'preact/hooks';
-import type { Source } from '../types.js';
+import { useState, useRef } from 'preact/hooks';
+import type { Source, StreamAdapter } from '../types.js';
 import { HALF_LIVES } from '../riverEngine.js';
 import styles from './VelocitySettings.module.css';
 
@@ -11,13 +11,38 @@ const TIERS: Array<{ tier: 1|2|3|4|5; label: string }> = [
   { tier: 5, label: '7d' },
 ];
 
+type ImportStatus = { type: 'idle' } | { type: 'loading' } | { type: 'ok'; count: number } | { type: 'error'; message: string };
+
 interface VelocitySettingsProps {
   sources: Source[];
+  adapter?: StreamAdapter;
   onUpdate: (sourceId: string, tier: 1|2|3|4|5) => void;
+  onImported?: () => void;
 }
 
-export function VelocitySettings({ sources, onUpdate }: VelocitySettingsProps) {
+export function VelocitySettings({ sources, adapter, onUpdate, onImported }: VelocitySettingsProps) {
   const [query, setQuery] = useState('');
+  const [importStatus, setImportStatus] = useState<ImportStatus>({ type: 'idle' });
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = async (e: Event) => {
+    const file = (e.target as HTMLInputElement).files?.[0];
+    if (!file || !adapter) return;
+
+    setImportStatus({ type: 'loading' });
+    try {
+      const xml    = await file.text();
+      const added  = await adapter.importOPML(xml);
+      setImportStatus({ type: 'ok', count: added.length });
+      onImported?.();
+      setTimeout(() => setImportStatus({ type: 'idle' }), 3_000);
+    } catch (err) {
+      setImportStatus({ type: 'error', message: err instanceof Error ? err.message : 'Import failed.' });
+    } finally {
+      // Reset so the same file can be re-selected
+      if (fileRef.current) fileRef.current.value = '';
+    }
+  };
 
   const filtered = query.trim()
     ? sources.filter(s => s.title.toLowerCase().includes(query.toLowerCase()))
@@ -27,7 +52,34 @@ export function VelocitySettings({ sources, onUpdate }: VelocitySettingsProps) {
 
   return (
     <div class={styles.wrap}>
-      <h2 class={styles.heading}>Velocity</h2>
+      <div class={styles.headingRow}>
+        <h2 class={styles.heading}>Velocity</h2>
+        {adapter && (
+          <div class={styles.importWrap}>
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".opml,.xml"
+              class={styles.fileInput}
+              aria-label="Import OPML file"
+              onChange={handleFileChange}
+            />
+            <button
+              class={styles.importBtn}
+              onClick={() => fileRef.current?.click()}
+              disabled={importStatus.type === 'loading'}
+            >
+              {importStatus.type === 'loading' ? 'Importing…' : 'Import OPML'}
+            </button>
+            {importStatus.type === 'ok' && (
+              <span class={styles.importOk}>✓ {importStatus.count} feeds added</span>
+            )}
+            {importStatus.type === 'error' && (
+              <span class={styles.importErr}>{importStatus.message}</span>
+            )}
+          </div>
+        )}
+      </div>
       <p class={styles.sub}>
         How quickly should each source's articles fade? Shorter = faster.
       </p>

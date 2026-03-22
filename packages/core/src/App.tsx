@@ -150,6 +150,19 @@ export function App() {
     });
   }, []);
 
+  const handleImported = useCallback(async () => {
+    setState(prev => {
+      if (prev.status !== 'settings') return prev;
+      // Re-fetch sources async and update state when done
+      applySavedVelocity([], loadVelocityConfig()); // no-op, just ensures cfg is initialised
+      prev.adapter.fetchSources().then(raw => {
+        const sources = applySavedVelocity(raw, loadVelocityConfig());
+        setState(p => p.status === 'settings' ? { ...p, sources } : p);
+      }).catch(() => {});
+      return prev;
+    });
+  }, []);
+
   const handleVelocityUpdate = useCallback((sourceId: string, tier: 1|2|3|4|5) => {
     setState(prev => {
       if (prev.status !== 'settings' && prev.status !== 'ready') return prev;
@@ -246,7 +259,9 @@ export function App() {
             {inSettings && (
               <VelocitySettings
                 sources={state.sources}
+                adapter={state.adapter}
                 onUpdate={handleVelocityUpdate}
+                onImported={handleImported}
               />
             )}
           </>
