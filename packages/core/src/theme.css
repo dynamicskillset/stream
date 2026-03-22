@@ -1,17 +1,23 @@
-/* Stream — design tokens
-   Applied to :root (Paper, default) and [data-theme="ink"]
-   All components reference these variables; never hard-code colours.
+/* Stream — design tokens (Nord colour scheme — https://nordtheme.com)
+   Paper = Nord Snow Storm + Polar Night accents (light)
+   Ink   = Nord Polar Night + Snow Storm text (dark)
 */
 
 :root {
-  --bg:           #faf8f4;
-  --surface:      #f5f1eb;
-  --text:         #2c1f14;
-  --text-muted:   #7a6655;
-  --accent-new:   #2a7a7a;
-  --accent-saved: #b86c1a;
-  --border:       #e0d8cc;
-  --shadow:       rgba(44, 31, 20, 0.08);
+  /* Nord Snow Storm backgrounds */
+  --bg:           #ECEFF4;   /* nord6 */
+  --surface:      #E5E9F0;   /* nord5 */
+  --border:       #D8DEE9;   /* nord4 */
+
+  /* Nord Polar Night text */
+  --text:         #2E3440;   /* nord0 */
+  --text-muted:   #4C566A;   /* nord3 */
+
+  /* Nord Frost + Aurora accents */
+  --accent-new:   #5E81AC;   /* nord10 — frost deep blue */
+  --accent-saved: #D08770;   /* nord12 — aurora orange */
+
+  --shadow:       rgba(46, 52, 64, 0.08);
 
   --font-serif: Georgia, 'Times New Roman', serif;
   --font-sans:  -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
@@ -21,13 +27,19 @@
 }
 
 [data-theme="ink"] {
-  --bg:           #1a1d21;
-  --surface:      #22262b;
-  --text:         #e8e4df;
-  --text-muted:   #8a9099;
-  --accent-new:   #4db8b8;
-  --accent-saved: #e07b20;
-  --border:       #2e3238;
+  /* Nord Polar Night backgrounds */
+  --bg:           #2E3440;   /* nord0 */
+  --surface:      #3B4252;   /* nord1 */
+  --border:       #434C5E;   /* nord2 */
+
+  /* Nord Snow Storm text */
+  --text:         #ECEFF4;   /* nord6 */
+  --text-muted:   #D8DEE9;   /* nord4 */
+
+  /* Nord Frost + Aurora accents */
+  --accent-new:   #88C0D0;   /* nord8 — frost light blue */
+  --accent-saved: #D08770;   /* nord12 — aurora orange */
+
   --shadow:       rgba(0, 0, 0, 0.3);
 }
 
