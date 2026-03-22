@@ -49,7 +49,14 @@
   color: var(--bg);
 }
 
-/* When there are no categories, push unread toggle to the right */
-.solo {
+/* Status pill group (Unread + Saved) */
+.statusPills {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+/* When there are no categories, push status pills to the right */
+.statusPills.solo {
   margin-left: auto;
 }

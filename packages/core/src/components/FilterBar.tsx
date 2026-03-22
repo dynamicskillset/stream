@@ -5,16 +5,20 @@ interface FilterBarProps {
   categories: Category[];
   activeCategory: string | null;
   unreadOnly: boolean;
+  savedOnly: boolean;
   onCategory: (id: string | null) => void;
   onUnreadOnly: (v: boolean) => void;
+  onSavedOnly: (v: boolean) => void;
 }
 
 export function FilterBar({
   categories,
   activeCategory,
   unreadOnly,
+  savedOnly,
   onCategory,
   onUnreadOnly,
+  onSavedOnly,
 }: FilterBarProps) {
   const hasCats = categories.length > 0;
 
@@ -39,14 +43,24 @@ export function FilterBar({
           ))}
         </div>
       )}
-      <button
-        class={`${styles.pill} ${unreadOnly ? styles.active : ''} ${hasCats ? '' : styles.solo}`}
-        onClick={() => onUnreadOnly(!unreadOnly)}
-        aria-pressed={unreadOnly}
-        title={unreadOnly ? 'Showing unread only — click to show all' : 'Show unread only'}
-      >
-        Unread
-      </button>
+      <div class={`${styles.statusPills} ${hasCats ? '' : styles.solo}`}>
+        <button
+          class={`${styles.pill} ${unreadOnly ? styles.active : ''}`}
+          onClick={() => onUnreadOnly(!unreadOnly)}
+          aria-pressed={unreadOnly}
+          title={unreadOnly ? 'Showing unread only — click to show all' : 'Show unread only'}
+        >
+          Unread
+        </button>
+        <button
+          class={`${styles.pill} ${savedOnly ? styles.active : ''}`}
+          onClick={() => onSavedOnly(!savedOnly)}
+          aria-pressed={savedOnly}
+          title={savedOnly ? 'Showing saved only — click to show all' : 'Show saved only'}
+        >
+          Saved
+        </button>
+      </div>
     </div>
   );
 }

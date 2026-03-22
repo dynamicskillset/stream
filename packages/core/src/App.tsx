@@ -375,10 +375,12 @@ interface ReadyViewProps {
 }
 
 function ReadyView({ adapter, sources, articles, categories, now, hidden }: ReadyViewProps) {
-  const [openArticle, setOpenArticle]     = useState<Article | null>(null);
-  const [showHelp, setShowHelp]           = useState(false);
+  const [openArticle, setOpenArticle]       = useState<Article | null>(null);
+  const [showHelp, setShowHelp]             = useState(false);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
-  const [unreadOnly, setUnreadOnly]       = useState(false);
+  const [unreadOnly, setUnreadOnly]         = useState(false);
+  const [savedOnly, setSavedOnly]           = useState(false);
+  const [starredOverrides, setStarredOverrides] = useState<Map<string, boolean>>(new Map());
 
   // Global '?' shortcut — only when not typing in an input
   useEffect(() => {
@@ -393,6 +395,8 @@ function ReadyView({ adapter, sources, articles, categories, now, hidden }: Read
   const sourceMap = new Map(sources.map(s => [s.id, s]));
 
   const filteredArticles = articles.filter(a => {
+    const starred = starredOverrides.has(a.id) ? starredOverrides.get(a.id) : a.isStarred;
+    if (savedOnly && !starred) return false;
     if (unreadOnly && a.isRead) return false;
     if (activeCategory !== null) {
       const src = sourceMap.get(a.sourceId);
@@ -408,10 +412,22 @@ function ReadyView({ adapter, sources, articles, categories, now, hidden }: Read
     adapter.setArticleRead(article.id).catch(() => {});
   }, [adapter]);
 
-  const handleSave = useCallback(
-    (article: Article) => adapter.setArticleStarred(article.id, true),
-    [adapter],
-  );
+  const handleSave = useCallback(async (article: Article) => {
+    const current = starredOverrides.has(article.id)
+      ? starredOverrides.get(article.id)!
+      : article.isStarred;
+    const next = !current;
+    setStarredOverrides(prev => new Map(prev).set(article.id, next));
+    try {
+      await adapter.setArticleStarred(article.id, next);
+    } catch {
+      setStarredOverrides(prev => {
+        const m = new Map(prev);
+        m.delete(article.id);
+        return m;
+      });
+    }
+  }, [adapter, starredOverrides]);
 
   const handleRead = useCallback(
     (article: Article) => adapter.setArticleRead(article.id),
@@ -420,21 +436,32 @@ function ReadyView({ adapter, sources, articles, categories, now, hidden }: Read
 
   const river = useRiver(scoredItems, handleOpen, handleSave, handleRead);
 
+  const savedIds = new Set(
+    articles
+      .filter(a => starredOverrides.has(a.id) ? starredOverrides.get(a.id) : a.isStarred)
+      .map(a => a.id),
+  );
+
+  const emptyMessage = savedOnly ? 'No saved articles yet.' : 'The river is quiet.';
+
   return (
     <div style={hidden ? { display: 'none' } : undefined}>
       <FilterBar
         categories={categories}
         activeCategory={activeCategory}
         unreadOnly={unreadOnly}
+        savedOnly={savedOnly}
         onCategory={setActiveCategory}
         onUnreadOnly={setUnreadOnly}
+        onSavedOnly={setSavedOnly}
       />
       <River
         items={river.items}
         focusedIndex={river.focusedIndex}
         sourceMap={sourceMap}
-        savedIds={river.savedIds}
+        savedIds={savedIds}
         pendingUndo={river.pendingUndo}
+        emptyMessage={emptyMessage}
         onDismiss={river.dismiss}
         onSave={river.save}
         onOpen={river.openItem}
@@ -444,8 +471,8 @@ function ReadyView({ adapter, sources, articles, categories, now, hidden }: Read
         <ReadingView
           article={openArticle}
           source={sourceMap.get(openArticle.sourceId)}
-          isSaved={river.savedIds.has(openArticle.id)}
-          onSave={() => river.save(openArticle.id)}
+          isSaved={savedIds.has(openArticle.id)}
+          onSave={() => handleSave(openArticle)}
           onClose={() => setOpenArticle(null)}
         />
       )}

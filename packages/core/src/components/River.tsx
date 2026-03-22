@@ -11,6 +11,7 @@ interface RiverProps {
   sourceMap: Map<string, Source>;
   savedIds: Set<string>;
   pendingUndo: { article: Article } | null;
+  emptyMessage?: string;
   onDismiss: (id: string) => void;
   onSave: (id: string) => void;
   onOpen: (id: string) => void;
@@ -23,6 +24,7 @@ export function River({
   sourceMap,
   savedIds,
   pendingUndo,
+  emptyMessage = 'The river is quiet.',
   onDismiss,
   onSave,
   onOpen,
@@ -43,7 +45,7 @@ export function River({
   if (items.length === 0) {
     return (
       <div class={styles.river}>
-        <p class={styles.empty}>The river is quiet.</p>
+        <p class={styles.empty}>{emptyMessage}</p>
       </div>
     );
   }
