@@ -118,6 +118,12 @@ export class FreshRSSAdapter implements StreamAdapter {
     const res = await fetch(this.proxyUrl(url), { method: 'POST', body });
 
     if (!res.ok) {
+      if (res.status === 401) {
+        return {
+          success: false,
+          error: 'Authentication failed (401). FreshRSS uses a separate API password — set one under Settings → Profile → API management, then use that here instead of your login password.',
+        };
+      }
       return { success: false, error: `HTTP ${res.status}` };
     }
 
@@ -323,7 +329,7 @@ export class FreshRSSAdapter implements StreamAdapter {
    */
   private proxyUrl(url: string): string {
     if (import.meta.env.DEV) {
-      return `/dev-proxy/${encodeURIComponent(url)}`;
+      return `/dev-proxy?url=${encodeURIComponent(url)}`;
     }
     return url;
   }

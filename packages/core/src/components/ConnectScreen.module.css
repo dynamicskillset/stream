@@ -105,6 +105,14 @@
   border-color: var(--accent-new);
 }
 
+.hint {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin: 0.375rem 0 0;
+  line-height: 1.4;
+}
+
 /* Error */
 .error {
   font-family: var(--font-sans);

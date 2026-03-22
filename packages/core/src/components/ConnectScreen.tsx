@@ -106,7 +106,9 @@ export function ConnectScreen({ onConnect, initialError }: ConnectScreenProps) {
           </div>
 
           <div class={styles.field}>
-            <label class={styles.label} for="stream-pass">Password</label>
+            <label class={styles.label} for="stream-pass">
+              {backend === 'freshrss' ? 'API password' : 'Password'}
+            </label>
             <input
               id="stream-pass"
               class={styles.input}
@@ -117,6 +119,11 @@ export function ConnectScreen({ onConnect, initialError }: ConnectScreenProps) {
               required
               autocomplete="current-password"
             />
+            {backend === 'freshrss' && (
+              <p class={styles.hint}>
+                Not your login password — set one under Settings → Profile → API management.
+              </p>
+            )}
           </div>
 
           {error && <p class={styles.error} role="alert">{error}</p>}

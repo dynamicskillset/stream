@@ -20,10 +20,13 @@ function devProxyPlugin(): Plugin {
     name: 'stream-dev-proxy',
     configureServer(server) {
       server.middlewares.use(
-        '/dev-proxy/',
+        '/dev-proxy',
         (req: IncomingMessage, res: ServerResponse) => {
-          // req.url arrives as "/<encoded-full-url>" — strip the leading /
-          const encoded = req.url?.replace(/^\//, '') ?? '';
+          // URL is passed as ?url=<encoded> to avoid path-normalisation
+          // collapsing http:// → http:/ inside a URL path segment.
+          const qs     = req.url?.split('?')[1] ?? '';
+          const params = new URLSearchParams(qs);
+          const encoded = params.get('url') ?? '';
 
           let targetUrl: string;
           try {
@@ -31,7 +34,7 @@ function devProxyPlugin(): Plugin {
             new URL(targetUrl); // validate
           } catch {
             res.statusCode = 400;
-            res.end('dev-proxy: invalid target URL');
+            res.end('dev-proxy: invalid or missing ?url= parameter');
             return;
           }
 
