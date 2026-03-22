@@ -109,6 +109,11 @@
   margin: 0 0 1.5rem;
 }
 
+.noContent {
+  font-family: var(--font-serif);
+  color: var(--text-muted);
+}
+
 /* Article body */
 .body {
   font-family: var(--font-serif);

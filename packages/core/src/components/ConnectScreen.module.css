@@ -1,5 +1,5 @@
 .wrap {
-  min-height: calc(100vh - 57px); /* viewport minus header */
+  min-height: calc(100vh - var(--header-height));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -117,10 +117,10 @@
 .error {
   font-family: var(--font-sans);
   font-size: 0.8125rem;
-  color: #b94040;
+  color: var(--color-error);
   margin: 0 0 1rem;
   padding: 0.5rem 0.625rem;
-  background: rgba(185, 64, 64, 0.08);
+  background: color-mix(in oklch, var(--color-error) 10%, transparent);
   border-radius: var(--radius);
   line-height: 1.4;
 }
@@ -151,8 +151,8 @@
 .spinner {
   width: 14px;
   height: 14px;
-  border: 2px solid rgba(255,255,255,0.4);
-  border-top-color: white;
+  border: 2px solid color-mix(in oklch, var(--bg) 40%, transparent);
+  border-top-color: var(--bg);
   border-radius: 50%;
   animation: spin 0.6s linear infinite;
   flex-shrink: 0;
@@ -163,5 +163,5 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .spinner { animation: none; border-top-color: white; opacity: 0.7; }
+  .spinner { animation: none; border-top-color: var(--bg); opacity: 0.7; }
 }

@@ -99,7 +99,7 @@ export function ReadingView({ article, source, isSaved, onSave, onClose }: Readi
             dangerouslySetInnerHTML={{ __html: safe }}
           />
         ) : (
-          <p style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-serif)' }}>
+          <p class={styles.noContent}>
             No content available. <a href={article.url} target="_blank" rel="noopener noreferrer">Read on the original site ↗</a>
           </p>
         )}

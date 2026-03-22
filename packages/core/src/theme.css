@@ -17,6 +17,11 @@
   --accent-new:   #5E81AC;   /* nord10 — frost deep blue */
   --accent-saved: #D08770;   /* nord12 — aurora orange */
 
+  /* Semantic tokens */
+  --color-error:  #B94040;
+  --backdrop:     rgba(46, 52, 64, 0.5);
+  --header-height: 57px;
+
   --shadow:       rgba(46, 52, 64, 0.08);
 
   --font-serif: Georgia, 'Times New Roman', serif;
@@ -39,6 +44,9 @@
   /* Nord Frost + Aurora accents */
   --accent-new:   #88C0D0;   /* nord8 — frost light blue */
   --accent-saved: #D08770;   /* nord12 — aurora orange */
+
+  /* Semantic tokens */
+  --color-error:  #CF8080;   /* lightened for dark bg contrast */
 
   --shadow:       rgba(0, 0, 0, 0.3);
 }
@@ -75,4 +83,14 @@ button {
   border: none;
   background: none;
   padding: 0;
+}
+
+/* Global keyboard focus indicator */
+button:focus-visible,
+[role="button"]:focus-visible,
+select:focus-visible,
+a:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--accent-new);
+  outline-offset: 2px;
 }

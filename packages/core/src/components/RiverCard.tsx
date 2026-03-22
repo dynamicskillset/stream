@@ -114,7 +114,7 @@ export function RiverCard({
       </button>
 
       {preview && (
-        <p class={styles.preview} onClick={() => onOpen(article.id)} style={{ cursor: 'pointer' }}>
+        <p class={styles.preview} onClick={() => onOpen(article.id)}>
           {preview}
         </p>
       )}

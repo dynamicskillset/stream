@@ -23,6 +23,7 @@
 }
 
 .pill {
+  min-height: 32px;
   padding: 0.1875rem 0.625rem;
   font-family: var(--font-sans);
   font-size: 0.75rem;

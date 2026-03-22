@@ -110,11 +110,11 @@
   margin-left: auto;
 }
 
-/* Action buttons — visible on hover/focus-within */
+/* Action buttons — dimmed at rest, visible on hover/focus-within */
 .actions {
   display: flex;
   gap: 0.125rem;
-  opacity: 0;
+  opacity: 0.4;
   transition: opacity var(--transition);
 }
 
@@ -127,8 +127,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 32px;
+  height: 32px;
   border-radius: var(--radius);
   color: var(--text-muted);
   font-size: 0.875rem;
@@ -180,6 +180,7 @@
 
 /* Preview text */
 .preview {
+  cursor: pointer;
   font-family: var(--font-serif);
   font-size: 0.875rem;
   color: var(--text-muted);

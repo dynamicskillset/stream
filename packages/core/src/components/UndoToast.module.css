@@ -4,8 +4,8 @@
 }
 
 @keyframes countdown {
-  from { width: 100%; }
-  to   { width: 0%;   }
+  from { transform: scaleX(1); }
+  to   { transform: scaleX(0); }
 }
 
 .toast {
@@ -51,12 +51,14 @@
   position: absolute;
   bottom: 0;
   left: 0;
+  width: 100%;
   height: 3px;
   background: var(--accent-new);
+  transform-origin: left;
   animation: countdown 5s linear forwards;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .toast      { animation: none; }
-  .countdown  { animation: none; width: 0%; }
+  .countdown  { animation: none; transform: scaleX(0); }
 }

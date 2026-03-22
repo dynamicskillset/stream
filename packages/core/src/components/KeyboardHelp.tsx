@@ -40,16 +40,14 @@ export function KeyboardHelp({ onClose }: KeyboardHelpProps) {
           <h2 class={styles.title}>Keyboard shortcuts</h2>
           <button class={styles.closeBtn} onClick={onClose} aria-label="Close">✕</button>
         </div>
-        <table class={styles.table}>
-          <tbody>
-            {SHORTCUTS.map(({ key, desc }) => (
-              <tr key={key} class={styles.row}>
-                <td class={styles.key}><kbd>{key}</kbd></td>
-                <td class={styles.desc}>{desc}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <dl class={styles.list}>
+          {SHORTCUTS.map(({ key, desc }) => (
+            <div key={key} class={styles.row}>
+              <dt class={styles.key}><kbd>{key}</kbd></dt>
+              <dd class={styles.desc}>{desc}</dd>
+            </div>
+          ))}
+        </dl>
       </div>
     </div>
   );

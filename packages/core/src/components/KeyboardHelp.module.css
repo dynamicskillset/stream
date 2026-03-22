@@ -1,7 +1,7 @@
 .backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(46, 52, 64, 0.5);  /* nord0 at 50% */
+  background: var(--backdrop);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -67,28 +67,32 @@
   background: var(--border);
 }
 
-.table {
-  width: 100%;
-  border-collapse: collapse;
+.list {
+  margin: 0;
+  padding: 0;
 }
 
-.row + .row .key,
-.row + .row .desc {
-  padding-top: 0.5rem;
+.row {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+}
+
+.row + .row {
+  margin-top: 0.5rem;
 }
 
 .key {
   width: 40%;
-  vertical-align: top;
-  padding-bottom: 0;
+  flex-shrink: 0;
+  margin: 0;
 }
 
 .desc {
   font-family: var(--font-sans);
   font-size: 0.8125rem;
   color: var(--text-muted);
-  vertical-align: top;
-  padding-bottom: 0;
+  margin: 0;
 }
 
 kbd {
