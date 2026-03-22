@@ -5,6 +5,8 @@ import { useTheme } from './hooks/useTheme.js';
 import { River } from './components/River.js';
 import { AppShell } from './components/AppShell.js';
 import { ConnectScreen } from './components/ConnectScreen.js';
+import { VelocitySettings } from './components/VelocitySettings.js';
+import { ReadingView } from './components/ReadingView.js';
 import { FreshRSSAdapter } from './adapters/freshrss.js';
 import type { Article, Source, StreamAdapter, AdapterConfig } from './types.js';
 import './theme.css';
@@ -98,16 +100,18 @@ async function fetchAllArticles(
 // ---------------------------------------------------------------------------
 
 type AppState =
-  | { status: 'connect';  error?: string }
-  | { status: 'loading';  adapter: StreamAdapter }
-  | { status: 'ready';    adapter: StreamAdapter; sources: Source[]; articles: Article[] }
-  | { status: 'error';    message: string };
+  | { status: 'connect';   error?: string }
+  | { status: 'loading';   adapter: StreamAdapter }
+  | { status: 'ready';     adapter: StreamAdapter; sources: Source[]; articles: Article[] }
+  | { status: 'settings';  adapter: StreamAdapter; sources: Source[]; articles: Article[] }
+  | { status: 'error';     message: string };
 
 export function App() {
   const { theme, toggle } = useTheme();
   const [state, setState] = useState<AppState>({ status: 'connect' });
   const [refreshing, setRefreshing] = useState(false);
   const [now, setNow] = useState(() => Date.now());
+  const [openArticle, setOpenArticle] = useState<Article | null>(null);
 
   // Live score recalculation every 60s
   useEffect(() => {
@@ -137,6 +141,27 @@ export function App() {
     localStorage.setItem(CONNECTION_KEY, JSON.stringify(config));
     await loadData(adapter);
   }, [loadData]);
+
+  const handleSettings = useCallback(() => {
+    setState(prev => {
+      if (prev.status === 'ready') return { ...prev, status: 'settings' };
+      if (prev.status === 'settings') return { ...prev, status: 'ready' };
+      return prev;
+    });
+  }, []);
+
+  const handleVelocityUpdate = useCallback((sourceId: string, tier: 1|2|3|4|5) => {
+    setState(prev => {
+      if (prev.status !== 'settings' && prev.status !== 'ready') return prev;
+      const cfg = loadVelocityConfig();
+      cfg[sourceId] = { tier, isVoice: cfg[sourceId]?.isVoice ?? false };
+      saveVelocityConfig(cfg);
+      const sources = prev.sources.map(s =>
+        s.id === sourceId ? { ...s, velocityTier: tier } : s
+      );
+      return { ...prev, sources };
+    });
+  }, []);
 
   const handleRefresh = useCallback(async () => {
     if (state.status !== 'ready' || refreshing) return;
@@ -176,42 +201,69 @@ export function App() {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Render
-  const showRefresh = state.status === 'ready';
+  const isReady    = state.status === 'ready' || state.status === 'settings';
+  const inSettings = state.status === 'settings';
 
   return (
-    <AppShell
-      theme={theme}
-      onToggleTheme={toggle}
-      onRefresh={showRefresh ? handleRefresh : undefined}
-      refreshing={refreshing}
-    >
-      {state.status === 'connect' && (
-        <ConnectScreen
-          onConnect={handleConnect}
-          initialError={state.error}
+    <>
+      <AppShell
+        theme={theme}
+        onToggleTheme={toggle}
+        onRefresh={isReady ? handleRefresh : undefined}
+        refreshing={refreshing}
+        onSettings={isReady ? handleSettings : undefined}
+        inSettings={inSettings}
+      >
+        {state.status === 'connect' && (
+          <ConnectScreen
+            onConnect={handleConnect}
+            initialError={state.error}
+          />
+        )}
+
+        {state.status === 'loading' && (
+          <LoadingView />
+        )}
+
+        {state.status === 'error' && (
+          <ErrorView
+            message={state.message}
+            onRetry={() => setState({ status: 'connect' })}
+          />
+        )}
+
+        {(state.status === 'ready' || state.status === 'settings') && (
+          <>
+            <ReadyView
+              adapter={state.adapter}
+              sources={state.sources}
+              articles={state.articles}
+              now={now}
+              onOpen={setOpenArticle}
+              hidden={inSettings}
+            />
+            {inSettings && (
+              <VelocitySettings
+                sources={state.sources}
+                onUpdate={handleVelocityUpdate}
+              />
+            )}
+          </>
+        )}
+      </AppShell>
+
+      {openArticle && (
+        <ReadingView
+          article={openArticle}
+          source={
+            (state.status === 'ready' || state.status === 'settings')
+              ? state.sources.find(s => s.id === openArticle.sourceId)
+              : undefined
+          }
+          onClose={() => setOpenArticle(null)}
         />
       )}
-
-      {state.status === 'loading' && (
-        <LoadingView />
-      )}
-
-      {state.status === 'error' && (
-        <ErrorView
-          message={state.message}
-          onRetry={() => setState({ status: 'connect' })}
-        />
-      )}
-
-      {state.status === 'ready' && (
-        <ReadyView
-          adapter={state.adapter}
-          sources={state.sources}
-          articles={state.articles}
-          now={now}
-        />
-      )}
-    </AppShell>
+    </>
   );
 }
 
@@ -280,22 +332,27 @@ interface ReadyViewProps {
   sources: Source[];
   articles: Article[];
   now: number;
+  onOpen: (article: Article) => void;
+  hidden?: boolean;
 }
 
-function ReadyView({ sources, articles, now }: ReadyViewProps) {
+function ReadyView({ sources, articles, now, onOpen, hidden }: ReadyViewProps) {
   const sourceMap   = new Map(sources.map(s => [s.id, s]));
   const scoredItems = scoreRiver(articles, sourceMap, now);
-  const river       = useRiver(scoredItems);
+  const river       = useRiver(scoredItems, onOpen);
 
   return (
-    <River
-      items={river.items}
-      focusedIndex={river.focusedIndex}
-      sourceMap={sourceMap}
-      pendingUndo={river.pendingUndo}
-      onDismiss={river.dismiss}
-      onSave={river.save}
-      onUndo={river.undo}
-    />
+    <div style={hidden ? { display: 'none' } : undefined}>
+      <River
+        items={river.items}
+        focusedIndex={river.focusedIndex}
+        sourceMap={sourceMap}
+        pendingUndo={river.pendingUndo}
+        onDismiss={river.dismiss}
+        onSave={river.save}
+        onOpen={river.openItem}
+        onUndo={river.undo}
+      />
+    </div>
   );
 }

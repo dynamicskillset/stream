@@ -12,6 +12,7 @@ interface RiverProps {
   pendingUndo: { article: Article } | null;
   onDismiss: (id: string) => void;
   onSave: (id: string) => void;
+  onOpen: (id: string) => void;
   onUndo: () => void;
 }
 
@@ -22,6 +23,7 @@ export function River({
   pendingUndo,
   onDismiss,
   onSave,
+  onOpen,
   onUndo,
 }: RiverProps) {
   const cardRefs = useRef<(HTMLElement | null)[]>([]);
@@ -58,6 +60,7 @@ export function River({
             isFocused={index === focusedIndex}
             onDismiss={onDismiss}
             onSave={onSave}
+            onOpen={onOpen}
             cardRef={el => { cardRefs.current[index] = el; }}
           />
         );
