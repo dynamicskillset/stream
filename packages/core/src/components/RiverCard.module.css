@@ -1,0 +1,178 @@
+/* --card-age: 0.0 = fresh (score 1.0), 1.0 = near-threshold (score ~0.05)
+   Two aging signals: opacity + left border (width + colour desaturation)
+   Opacity floor 0.3 — text remains readable even for oldest visible cards.
+*/
+
+.card {
+  position: relative;
+  background: var(--surface);
+  padding: 0.75rem 1rem 0.75rem 0.875rem;
+  margin-bottom: 2px;
+  border-radius: var(--radius);
+
+  /* Aging signal 1: opacity */
+  opacity: calc(1.0 - 0.7 * var(--card-age, 0));
+
+  /* Aging signal 2: left border — thick + saturated when fresh */
+  border-left: solid var(--accent-new);
+  border-left-width: calc(4px - 2px * var(--card-age, 0));
+  border-left-color: color-mix(
+    in oklch,
+    var(--accent-new),
+    var(--border) calc(75% * var(--card-age, 0))
+  );
+
+  transition:
+    opacity var(--transition),
+    border-left-width var(--transition),
+    border-left-color var(--transition),
+    box-shadow var(--transition),
+    background var(--transition);
+}
+
+/* Focus ring via keyboard nav */
+.card[aria-current="true"] {
+  box-shadow: 0 0 0 2px var(--accent-new);
+  background: var(--bg);
+  outline: none;
+}
+
+/* High-contrast mode: disable opacity entirely, keep border signal */
+@media (prefers-contrast: more) {
+  .card {
+    opacity: 1 !important;
+  }
+}
+
+/* Header row: favicon + source + time + actions */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin-bottom: 0.25rem;
+}
+
+.faviconWrap {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  position: relative;
+}
+
+.favicon {
+  width: 16px;
+  height: 16px;
+  border-radius: 2px;
+  object-fit: contain;
+}
+
+.favicon[data-error] {
+  display: none;
+}
+
+/* Letter fallback shown when favicon fails */
+.faviconFallback {
+  display: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 2px;
+  background: var(--border);
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+/* Show fallback when img errored */
+.favicon[data-error] ~ .faviconFallback {
+  display: block;
+}
+
+.sourceName {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+}
+
+.time {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  margin-left: auto;
+}
+
+/* Action buttons — visible on hover/focus-within */
+.actions {
+  display: flex;
+  gap: 0.125rem;
+  opacity: 0;
+  transition: opacity var(--transition);
+}
+
+.card:hover .actions,
+.card:focus-within .actions {
+  opacity: 1;
+}
+
+.actionBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  transition: color var(--transition), background var(--transition);
+}
+
+.actionBtn:hover {
+  color: var(--text);
+  background: var(--border);
+}
+
+.saveBtn:hover {
+  color: var(--accent-saved);
+}
+
+.dismissBtn:hover {
+  color: var(--text);
+}
+
+/* Title link */
+.titleLink {
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.title {
+  font-family: var(--font-serif);
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.4;
+  margin: 0;
+  color: var(--text);
+}
+
+.titleLink:hover .title {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* Preview text */
+.preview {
+  font-family: var(--font-serif);
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.5;
+}

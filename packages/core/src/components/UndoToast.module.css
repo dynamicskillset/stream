@@ -1,0 +1,62 @@
+@keyframes slideUp {
+  from { transform: translateX(-50%) translateY(100%); opacity: 0; }
+  to   { transform: translateX(-50%) translateY(0);    opacity: 1; }
+}
+
+@keyframes countdown {
+  from { width: 100%; }
+  to   { width: 0%;   }
+}
+
+.toast {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.625rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: 0 4px 16px var(--shadow);
+  animation: slideUp 200ms ease forwards;
+  overflow: hidden;
+  white-space: nowrap;
+  z-index: 100;
+}
+
+.message {
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.undoBtn {
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--accent-new);
+  padding: 0.125rem 0.375rem;
+  border-radius: var(--radius);
+  transition: background var(--transition);
+}
+
+.undoBtn:hover {
+  background: var(--border);
+}
+
+.countdown {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: var(--accent-new);
+  animation: countdown 5s linear forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast      { animation: none; }
+  .countdown  { animation: none; width: 0%; }
+}
