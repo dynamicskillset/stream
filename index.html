@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stream — The river is what's here right now</title>
+  <meta name="description" content="A velocity-based RSS reader. Articles arrive, linger, and fade. You are not behind." />
+  <link rel="preconnect" href="https://fonts.bunny.net" />
+  <link href="https://fonts.bunny.net/css?family=dm-sans:400,500,600,700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:          #2E3440;
+      --surface:     #3B4252;
+      --surface2:    #434C5E;
+      --border:      #4C566A;
+      --text:        #ECEFF4;
+      --text-muted:  #9BB5CC;
+      --accent:      #88C0D0;
+      --accent-warm: #D08770;
+      --green:       #A3BE8C;
+      --font: 'DM Sans', system-ui, sans-serif;
+      --radius: 8px;
+      --max: 860px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 16px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: inherit; text-decoration: none; }
+
+    /* ── Nav ── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: rgba(46, 52, 64, 0.92);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-inner {
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 0.875rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 1.0625rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: var(--text);
+    }
+
+    .nav-logo svg {
+      width: 24px;
+      height: 24px;
+      color: var(--accent);
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .btn-ghost {
+      font-family: var(--font);
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      padding: 0.375rem 0.75rem;
+      border-radius: var(--radius);
+      border: 1px solid transparent;
+      cursor: pointer;
+      background: none;
+      transition: color 0.15s, border-color 0.15s;
+    }
+
+    .btn-ghost:hover {
+      color: var(--text);
+      border-color: var(--border);
+    }
+
+    .btn-primary {
+      font-family: var(--font);
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--bg);
+      background: var(--accent);
+      padding: 0.4375rem 1rem;
+      border-radius: var(--radius);
+      border: none;
+      cursor: pointer;
+      transition: opacity 0.15s;
+      display: inline-block;
+    }
+
+    .btn-primary:hover { opacity: 0.85; }
+
+    /* ── Hero ── */
+    .hero {
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 5rem 1.5rem 4rem;
+      text-align: center;
+    }
+
+    .hero-eyebrow {
+      display: inline-block;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 1.25rem;
+    }
+
+    .hero-title {
+      font-size: clamp(2.25rem, 5vw, 3.5rem);
+      font-weight: 700;
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+      color: var(--text);
+      margin-bottom: 1.25rem;
+    }
+
+    .hero-title em {
+      font-style: normal;
+      color: var(--accent);
+    }
+
+    .hero-sub {
+      font-size: clamp(1rem, 2vw, 1.1875rem);
+      color: var(--text-muted);
+      max-width: 520px;
+      margin: 0 auto 2.25rem;
+      line-height: 1.65;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 0.875rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn-lg {
+      font-size: 1rem;
+      padding: 0.6875rem 1.5rem;
+    }
+
+    .btn-outline {
+      font-family: var(--font);
+      font-size: 1rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      background: none;
+      border: 1px solid var(--border);
+      padding: 0.6875rem 1.5rem;
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+      display: inline-block;
+    }
+
+    .btn-outline:hover {
+      color: var(--text);
+      border-color: var(--text-muted);
+    }
+
+    /* ── River illustration ── */
+    .river-demo {
+      max-width: 600px;
+      margin: 3.5rem auto 0;
+    }
+
+    .demo-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--border);
+      margin-bottom: 0.875rem;
+    }
+
+    .demo-cards {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .demo-card {
+      background: var(--surface);
+      border-radius: 4px;
+      padding: 0.625rem 0.875rem 0.625rem 0.75rem;
+      border-left: solid var(--accent);
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      transition: opacity 0.3s;
+    }
+
+    .demo-card-meta {
+      font-size: 0.6875rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .demo-card-title {
+      font-size: 0.9375rem;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.35;
+    }
+
+    /* Aging: opacity + border width decrease */
+    .demo-card:nth-child(1) { opacity: 1;    border-left-width: 4px; }
+    .demo-card:nth-child(2) { opacity: 0.82; border-left-width: 3.5px; border-left-color: color-mix(in oklch, var(--accent), var(--border) 15%); }
+    .demo-card:nth-child(3) { opacity: 0.60; border-left-width: 3px;   border-left-color: color-mix(in oklch, var(--accent), var(--border) 40%); }
+    .demo-card:nth-child(4) { opacity: 0.38; border-left-width: 2.5px; border-left-color: color-mix(in oklch, var(--accent), var(--border) 65%); }
+    .demo-card:nth-child(5) { opacity: 0.18; border-left-width: 2px;   border-left-color: color-mix(in oklch, var(--accent), var(--border) 85%); }
+
+    /* ── Section shared ── */
+    section {
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 4rem 1.5rem;
+    }
+
+    .section-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+      margin-bottom: 0.625rem;
+    }
+
+    .section-title {
+      font-size: clamp(1.5rem, 3vw, 2rem);
+      font-weight: 700;
+      letter-spacing: -0.015em;
+      color: var(--text);
+      margin-bottom: 0.875rem;
+    }
+
+    .section-sub {
+      font-size: 1rem;
+      color: var(--text-muted);
+      max-width: 520px;
+      line-height: 1.65;
+    }
+
+    hr.divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      max-width: var(--max);
+      margin: 0 auto;
+    }
+
+    /* ── Features ── */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin-top: 2.5rem;
+    }
+
+    .feature {
+      background: var(--surface);
+      padding: 1.75rem 1.5rem;
+    }
+
+    .feature-icon {
+      font-size: 1.5rem;
+      margin-bottom: 0.875rem;
+      display: block;
+      line-height: 1;
+    }
+
+    .feature-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 0.5rem;
+    }
+
+    .feature-desc {
+      font-size: 0.9375rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    /* ── Velocity table ── */
+    .velocity-section {
+      padding: 4rem 1.5rem;
+    }
+
+    .velocity-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 2rem;
+      font-size: 0.9375rem;
+    }
+
+    .velocity-table th {
+      text-align: left;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      padding: 0 1rem 0.75rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .velocity-table th:first-child { padding-left: 0; }
+
+    .velocity-table td {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--surface2);
+      color: var(--text-muted);
+      vertical-align: middle;
+    }
+
+    .velocity-table td:first-child {
+      padding-left: 0;
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    .velocity-table tr:last-child td { border-bottom: none; }
+
+    .tier-badge {
+      display: inline-block;
+      font-size: 0.6875rem;
+      font-weight: 700;
+      padding: 0.2em 0.5em;
+      border-radius: 4px;
+      background: var(--surface2);
+      color: var(--accent);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    /* ── Getting started ── */
+    .backends {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem;
+      margin-top: 2rem;
+    }
+
+    .backend-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+    }
+
+    .backend-name {
+      font-size: 1.0625rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 0.375rem;
+    }
+
+    .backend-badge {
+      display: inline-block;
+      font-size: 0.6875rem;
+      font-weight: 700;
+      padding: 0.2em 0.5em;
+      border-radius: 4px;
+      margin-left: 0.5rem;
+      vertical-align: middle;
+    }
+
+    .badge-paid { background: color-mix(in oklch, var(--accent-warm) 20%, transparent); color: var(--accent-warm); }
+    .badge-free { background: color-mix(in oklch, var(--green) 20%, transparent); color: var(--green); }
+
+    .backend-desc {
+      font-size: 0.9375rem;
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+      line-height: 1.6;
+    }
+
+    .backend-link {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--accent);
+      transition: opacity 0.15s;
+    }
+
+    .backend-link:hover { opacity: 0.75; }
+
+    .steps {
+      margin-top: 2.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .step {
+      display: flex;
+      gap: 1.25rem;
+      padding: 1.25rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .step:last-child { border-bottom: none; }
+
+    .step-num {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: var(--bg);
+      font-weight: 700;
+      font-size: 0.875rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .step-body { flex: 1; }
+
+    .step-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 0.25rem;
+    }
+
+    .step-desc {
+      font-size: 0.9375rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    /* ── Footer ── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 2rem 1.5rem;
+    }
+
+    .footer-inner {
+      max-width: var(--max);
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+
+    .footer-left {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+    }
+
+    .footer-right {
+      display: flex;
+      gap: 1.5rem;
+      font-size: 0.875rem;
+    }
+
+    .footer-right a {
+      color: var(--text-muted);
+      transition: color 0.15s;
+    }
+
+    .footer-right a:hover { color: var(--text); }
+
+    /* ── Responsive ── */
+    @media (max-width: 600px) {
+      .nav-links .btn-ghost { display: none; }
+      .hero { padding: 3.5rem 1rem 3rem; }
+      section, .velocity-section { padding: 3rem 1rem; }
+      .velocity-table th:nth-child(3),
+      .velocity-table td:nth-child(3) { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Nav -->
+  <nav>
+    <div class="nav-inner">
+      <a class="nav-logo" href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M3 12 Q6 6 12 12 Q18 18 21 12"/>
+          <path d="M3 17 Q6 11 12 17 Q18 23 21 17" opacity="0.5"/>
+          <path d="M3 7 Q6 1 12 7 Q18 13 21 7" opacity="0.25"/>
+        </svg>
+        Stream
+      </a>
+      <div class="nav-links">
+        <a class="btn-ghost" href="https://github.com/dynamicskillset/stream">GitHub</a>
+        <a class="btn-primary" href="https://github.com/dynamicskillset/stream">Deploy free ↗</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <div class="hero">
+    <span class="hero-eyebrow">RSS without obligation</span>
+    <h1 class="hero-title">The river is what's<br><em>here right now</em></h1>
+    <p class="hero-sub">Articles arrive, linger, and fade at their own pace. No unread counts. No catching up. You are not behind.</p>
+    <div class="hero-actions">
+      <a class="btn-primary btn-lg" href="https://github.com/dynamicskillset/stream">Get Stream ↗</a>
+      <a class="btn-outline btn-lg" href="#how-it-works">How it works</a>
+    </div>
+
+    <div class="river-demo" aria-hidden="true">
+      <p class="demo-label">Your river, right now</p>
+      <div class="demo-cards">
+        <div class="demo-card">
+          <span class="demo-card-meta">BBC News · 12 min ago</span>
+          <span class="demo-card-title">Fresh news, fully visible — just arrived</span>
+        </div>
+        <div class="demo-card">
+          <span class="demo-card-meta">Ars Technica · 3 hrs ago</span>
+          <span class="demo-card-title">Gently fading, still worth your attention</span>
+        </div>
+        <div class="demo-card">
+          <span class="demo-card-meta">The Verge · 8 hrs ago</span>
+          <span class="demo-card-title">Getting older, dimming as it ages</span>
+        </div>
+        <div class="demo-card">
+          <span class="demo-card-meta">Kottke · 18 hrs ago</span>
+          <span class="demo-card-title">Nearly gone — has had its moment</span>
+        </div>
+        <div class="demo-card">
+          <span class="demo-card-meta">Craig Mod · 2 days ago</span>
+          <span class="demo-card-title">A long essay, still here — slow feeds linger</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider" />
+
+  <!-- Features -->
+  <section id="features">
+    <p class="section-label">What makes it different</p>
+    <h2 class="section-title">RSS as a river, not an inbox</h2>
+    <p class="section-sub">Stream takes the pressure out of reading by making articles behave the way the news actually behaves.</p>
+
+    <div class="features-grid">
+      <div class="feature">
+        <span class="feature-icon">📭</span>
+        <h3 class="feature-title">No unread counts</h3>
+        <p class="feature-desc">Nothing accumulates. Nothing demands to be cleared. The river flows whether you watch it or not.</p>
+      </div>
+      <div class="feature">
+        <span class="feature-icon">⏳</span>
+        <h3 class="feature-title">Everything fades</h3>
+        <p class="feature-desc">Articles dim and disappear on a schedule you choose. A news feed clears in hours. A personal essay stays for days.</p>
+      </div>
+      <div class="feature">
+        <span class="feature-icon">🔒</span>
+        <h3 class="feature-title">Your backend, your data</h3>
+        <p class="feature-desc">Stream connects to FreshRSS or Feedbin. It reads your feeds — it never stores them. Nothing to leak, nothing to sell.</p>
+      </div>
+      <div class="feature">
+        <span class="feature-icon">⌨️</span>
+        <h3 class="feature-title">Keyboard-first</h3>
+        <p class="feature-desc">Navigate with <kbd style="background:var(--surface2);color:var(--text);border-radius:3px;padding:0.1em 0.35em;font-size:0.875em">j</kbd> / <kbd style="background:var(--surface2);color:var(--text);border-radius:3px;padding:0.1em 0.35em;font-size:0.875em">k</kbd>, dismiss with <kbd style="background:var(--surface2);color:var(--text);border-radius:3px;padding:0.1em 0.35em;font-size:0.875em">d</kbd>, save with <kbd style="background:var(--surface2);color:var(--text);border-radius:3px;padding:0.1em 0.35em;font-size:0.875em">s</kbd>. The mouse is optional.</p>
+      </div>
+      <div class="feature">
+        <span class="feature-icon">🗂️</span>
+        <h3 class="feature-title">Manage from one place</h3>
+        <p class="feature-desc">Add feeds, import OPML, set categories, and adjust velocity — all from within Stream. No need to visit your backend.</p>
+      </div>
+      <div class="feature">
+        <span class="feature-icon">🌗</span>
+        <h3 class="feature-title">Light and dark</h3>
+        <p class="feature-desc">Paper and Ink themes, both built on the Nord colour scheme. Toggle any time from the header.</p>
+      </div>
+    </div>
+  </section>
+
+  <hr class="divider" />
+
+  <!-- How it works / velocity -->
+  <section class="velocity-section" id="how-it-works">
+    <p class="section-label">Velocity</p>
+    <h2 class="section-title">Each source fades at its own pace</h2>
+    <p class="section-sub">You set a tier for each feed. The tier controls the half-life: how long it takes for an article to fade to half its original visibility. A prolific news site cannot drown out a thoughtful essayist.</p>
+
+    <table class="velocity-table" aria-label="Velocity tiers">
+      <thead>
+        <tr>
+          <th>Tier</th>
+          <th>Half-life</th>
+          <th>Good for</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="tier-badge">Breaking</span></td>
+          <td>3 hours</td>
+          <td>BBC News, Reuters</td>
+        </tr>
+        <tr>
+          <td><span class="tier-badge">News</span></td>
+          <td>12 hours</td>
+          <td>Ars Technica, The Verge</td>
+        </tr>
+        <tr>
+          <td><span class="tier-badge">Article</span></td>
+          <td>24 hours</td>
+          <td>Most blogs (default)</td>
+        </tr>
+        <tr>
+          <td><span class="tier-badge">Essay</span></td>
+          <td>3 days</td>
+          <td>Aeon, Craig Mod</td>
+        </tr>
+        <tr>
+          <td><span class="tier-badge">Evergreen</span></td>
+          <td>7 days</td>
+          <td>Tutorials, references</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="divider" />
+
+  <!-- Getting started -->
+  <section id="get-started">
+    <p class="section-label">Getting started</p>
+    <h2 class="section-title">You need a backend first</h2>
+    <p class="section-sub">Stream is a frontend only. Pick one of these and set it up before you deploy Stream.</p>
+
+    <div class="backends">
+      <div class="backend-card">
+        <p class="backend-name">Feedbin <span class="backend-badge badge-paid">$5/month</span></p>
+        <p class="backend-desc">A polished hosted RSS service. Sign up, add your feeds, connect Stream. No server to manage.</p>
+        <a class="backend-link" href="https://feedbin.com" target="_blank" rel="noopener noreferrer">feedbin.com ↗</a>
+      </div>
+      <div class="backend-card">
+        <p class="backend-name">FreshRSS <span class="backend-badge badge-free">Free hosted</span></p>
+        <p class="backend-desc">Open-source RSS with a free hosted option. Needs a separate API password under Settings → Profile → API management.</p>
+        <a class="backend-link" href="https://freshrss.net" target="_blank" rel="noopener noreferrer">freshrss.net ↗</a>
+      </div>
+    </div>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <p class="step-title">Set up your backend</p>
+          <p class="step-desc">Create a Feedbin account or sign up at freshrss.net. Add a few feeds to get going.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <p class="step-title">Fork this repo and connect to Netlify</p>
+          <p class="step-desc">Fork <a href="https://github.com/dynamicskillset/stream" style="color:var(--accent)">dynamicskillset/stream</a> to your GitHub account. In Netlify, add it as a new site. Build settings come from <code style="font-size:0.875em;background:var(--surface2);padding:0.1em 0.35em;border-radius:3px">netlify.toml</code> automatically.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <p class="step-title">Open Stream and connect</p>
+          <p class="step-desc">Visit your Netlify URL, enter your credentials, and the river starts flowing.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="footer-inner">
+      <span class="footer-left">Stream v0.4.0 · AGPL-3.0</span>
+      <div class="footer-right">
+        <a href="https://github.com/dynamicskillset/stream">GitHub</a>
+        <a href="https://github.com/dynamicskillset/stream/blob/main/README.md">Docs</a>
+        <a href="https://www.terrygodier.com/current">Inspired by Current</a>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
