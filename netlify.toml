@@ -1,0 +1,15 @@
+[build]
+  command   = "npm run build:web"
+  publish   = "packages/web/dist"
+  functions = "netlify/functions"
+
+[build.environment]
+  # Routes /proxy requests through the Netlify Function so the browser never
+  # makes a cross-origin request to your RSS backend.
+  VITE_PROXY_URL = "/.netlify/functions/proxy"
+
+# SPA fallback — all paths serve index.html, Preact handles routing
+[[redirects]]
+  from   = "/*"
+  to     = "/index.html"
+  status = 200

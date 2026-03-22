@@ -42,18 +42,20 @@ Visibility score: `0.5 ^ (elapsed / halfLife)`. Articles below 0.05 disappear. F
 
 ## Status
 
-Phase 1 — in development.
-
 - [x] River engine with velocity-based aging
 - [x] FreshRSS adapter (Google Reader API)
-- [x] Web app (Vite SPA)
-- [x] Browser extension shell (Firefox + Chrome, MV3)
-- [x] Light / dark themes
-- [x] Keyboard navigation
-- [ ] Feedbin adapter
-- [ ] Velocity configuration UI
-- [ ] Onboarding flow polish
-- [ ] Firefox Add-ons publication
+- [x] Feedbin adapter
+- [x] Web app (Vite SPA) — deploy to Netlify or any static host
+- [x] Browser extension (Firefox + Chrome, MV3) with built-in CORS proxy
+- [x] Light / dark themes (Nord colour scheme)
+- [x] Keyboard navigation (`j`/`k`, `d` dismiss, `s` save, `z` undo, `?` help)
+- [x] Velocity settings per source and per category
+- [x] Category filtering and unread-only toggle
+- [x] OPML import, add feed by URL
+- [x] Reading view with sanitised content
+- [ ] Saved / Read Later view
+- [ ] Background sync + badge count (extension)
+- [ ] Firefox Add-ons / Chrome Web Store publication
 
 ---
 
@@ -74,26 +76,61 @@ packages/
 
 ---
 
-## Development
+## Running locally
 
 ```bash
 npm install
-npm run dev          # web app at http://localhost:5173
-npm run build:web    # production build → packages/web/dist/
-npm run build:extension  # extension build → packages/extension/dist/
+npm run dev   # → http://localhost:5173
 ```
 
-The dev server includes a reverse proxy at `/dev-proxy` that forwards API requests server-side, bypassing browser CORS restrictions during development. Enter your FreshRSS server root URL (e.g. `https://freshrss.example.com`) — not the API path.
+The dev server includes a reverse proxy that forwards API requests server-side, so CORS is handled automatically. Enter your backend root URL in the connect screen (e.g. `https://freshrss.example.com`).
 
-**FreshRSS note:** the Google Reader API uses a separate API password, set under Settings → Profile → API management. Your regular login password will not work.
+**FreshRSS note:** the Google Reader API requires a separate API password — set one under Settings → Profile → API management. Your regular login password will not work here.
 
 ---
 
-## Deployment (web app)
+## Deployment
 
-Drop the contents of `packages/web/dist/` into a directory served by the same web server as your RSS backend. Same-origin requests need no CORS configuration.
+### Web app — Netlify (recommended)
 
-Alternatively, host on any static server (Netlify, Cloudflare Pages, GitHub Pages) and enable CORS headers on your backend. The README will include a copy-paste nginx snippet once this is tested.
+Connect this repo to [Netlify](https://netlify.com). Build settings are read from `netlify.toml` automatically — no configuration needed. A serverless proxy function is bundled with the build to handle CORS for self-hosted backends.
+
+### Web app — other static hosts
+
+```bash
+npm run build:web
+# deploy packages/web/dist/ to your host
+```
+
+For self-hosted FreshRSS/Miniflux, your backend must send CORS headers. Add to your nginx config:
+
+```nginx
+add_header Access-Control-Allow-Origin  "*";
+add_header Access-Control-Allow-Headers "Authorization, Content-Type";
+add_header Access-Control-Allow-Methods "GET, POST";
+```
+
+Feedbin users need no extra configuration — Feedbin supports CORS natively.
+
+### Browser extension
+
+The extension includes its own CORS proxy (background service worker), so it works with any backend without any server configuration.
+
+```bash
+npm run package:extension   # → stream-extension.zip
+```
+
+- **Firefox**: `about:debugging` → This Firefox → Load Temporary Add-on → select the zip
+- **Chrome**: `chrome://extensions` → Developer mode → Load unpacked → select `packages/extension/dist/`
+
+### Commands
+
+| Command | Output |
+|---------|--------|
+| `npm run dev` | Dev server at localhost:5173 |
+| `npm run build:web` | `packages/web/dist/` |
+| `npm run build:extension` | `packages/extension/dist/` |
+| `npm run package:extension` | `stream-extension.zip` |
 
 ---
 

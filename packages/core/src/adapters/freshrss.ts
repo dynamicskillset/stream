@@ -323,13 +323,20 @@ export class FreshRSSAdapter implements StreamAdapter {
   }
 
   /**
-   * In Vite dev mode (import.meta.env.DEV === true), route requests through
-   * the local dev-proxy middleware to avoid CORS restrictions.
-   * In production builds this compiles away to a no-op (just returns the url).
+   * Routes requests through a same-origin proxy to avoid CORS restrictions.
+   *
+   * - Dev: Vite's devProxyPlugin handles /dev-proxy.
+   * - Production (Netlify): VITE_PROXY_URL is set to /.netlify/functions/proxy.
+   * - Other production hosts: VITE_PROXY_URL can point to any compatible proxy,
+   *   or leave unset to make direct requests (requires CORS headers on the backend).
    */
   private proxyUrl(url: string): string {
     if (import.meta.env.DEV) {
       return `/dev-proxy?url=${encodeURIComponent(url)}`;
+    }
+    const base = import.meta.env.VITE_PROXY_URL;
+    if (base) {
+      return `${base}?url=${encodeURIComponent(url)}`;
     }
     return url;
   }
