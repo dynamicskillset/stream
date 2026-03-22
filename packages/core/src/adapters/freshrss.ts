@@ -115,7 +115,7 @@ export class FreshRSSAdapter implements StreamAdapter {
       Passwd: config.password ?? '',
     });
 
-    const res = await fetch(url, { method: 'POST', body });
+    const res = await fetch(this.proxyUrl(url), { method: 'POST', body });
 
     if (!res.ok) {
       return { success: false, error: `HTTP ${res.status}` };
@@ -143,7 +143,7 @@ export class FreshRSSAdapter implements StreamAdapter {
 
   private async fetchTToken(): Promise<string> {
     const res = await fetch(
-      `${this.baseUrl}/api/greader.php/reader/api/0/token`,
+      this.proxyUrl(`${this.baseUrl}/api/greader.php/reader/api/0/token`),
       { headers: this.authHeaders() },
     );
     if (!res.ok) throw new Error(`T-token fetch failed: HTTP ${res.status}`);
@@ -164,7 +164,9 @@ export class FreshRSSAdapter implements StreamAdapter {
     const t = await this.getTToken();
     const body = new URLSearchParams({ ...params, T: t });
 
-    let res = await fetch(`${this.baseUrl}/api/greader.php${path}`, {
+    const postUrl = this.proxyUrl(`${this.baseUrl}/api/greader.php${path}`);
+
+    let res = await fetch(postUrl, {
       method:  'POST',
       headers: this.authHeaders(),
       body,
@@ -175,7 +177,7 @@ export class FreshRSSAdapter implements StreamAdapter {
       this.tToken = null;
       const t2    = await this.getTToken();
       body.set('T', t2);
-      res = await fetch(`${this.baseUrl}/api/greader.php${path}`, {
+      res = await fetch(postUrl, {
         method:  'POST',
         headers: this.authHeaders(),
         body,
@@ -189,7 +191,7 @@ export class FreshRSSAdapter implements StreamAdapter {
 
   async fetchSources(): Promise<Source[]> {
     const res = await fetch(
-      `${this.baseUrl}/api/greader.php/reader/api/0/subscription/list?output=json`,
+      this.proxyUrl(`${this.baseUrl}/api/greader.php/reader/api/0/subscription/list?output=json`),
       { headers: this.authHeaders() },
     );
     if (!res.ok) throw new Error(`fetchSources failed: HTTP ${res.status}`);
@@ -210,7 +212,7 @@ export class FreshRSSAdapter implements StreamAdapter {
 
   async fetchCategories(): Promise<Category[]> {
     const res = await fetch(
-      `${this.baseUrl}/api/greader.php/reader/api/0/tag/list?output=json`,
+      this.proxyUrl(`${this.baseUrl}/api/greader.php/reader/api/0/tag/list?output=json`),
       { headers: this.authHeaders() },
     );
     if (!res.ok) throw new Error(`fetchCategories failed: HTTP ${res.status}`);
@@ -236,7 +238,7 @@ export class FreshRSSAdapter implements StreamAdapter {
     }
 
     const res = await fetch(
-      `${this.baseUrl}/api/greader.php/reader/api/0/stream/contents/reading-list?${params}`,
+      this.proxyUrl(`${this.baseUrl}/api/greader.php/reader/api/0/stream/contents/reading-list?${params}`),
       { headers: this.authHeaders() },
     );
 
@@ -312,5 +314,17 @@ export class FreshRSSAdapter implements StreamAdapter {
 
   private authHeaders(): HeadersInit {
     return { Authorization: `GoogleLogin auth=${this.authToken}` };
+  }
+
+  /**
+   * In Vite dev mode (import.meta.env.DEV === true), route requests through
+   * the local dev-proxy middleware to avoid CORS restrictions.
+   * In production builds this compiles away to a no-op (just returns the url).
+   */
+  private proxyUrl(url: string): string {
+    if (import.meta.env.DEV) {
+      return `/dev-proxy/${encodeURIComponent(url)}`;
+    }
+    return url;
   }
 }
