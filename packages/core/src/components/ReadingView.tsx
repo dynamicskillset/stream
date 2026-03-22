@@ -43,7 +43,7 @@ export function ReadingView({ article, source, onClose }: ReadingViewProps) {
       <div class={styles.inner}>
         <div class={styles.toolbar}>
           <button class={styles.backBtn} onClick={onClose} aria-label="Back to river">
-            ← River
+            ← Stream
           </button>
           <a
             class={styles.externalLink}
