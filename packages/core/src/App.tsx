@@ -1,219 +1,301 @@
-import { useState, useEffect } from 'preact/hooks';
-import { scoreRiver } from './riverEngine.js';
+import { useState, useEffect, useCallback } from 'preact/hooks';
+import { scoreRiver, HALF_LIVES } from './riverEngine.js';
 import { useRiver } from './hooks/useRiver.js';
 import { useTheme } from './hooks/useTheme.js';
 import { River } from './components/River.js';
 import { AppShell } from './components/AppShell.js';
-import type { Article, Source } from './types.js';
+import { ConnectScreen } from './components/ConnectScreen.js';
+import { FreshRSSAdapter } from './adapters/freshrss.js';
+import type { Article, Source, StreamAdapter, AdapterConfig } from './types.js';
 import './theme.css';
 
 // ---------------------------------------------------------------------------
-// Mock data — spread across 4 sources/tiers so the aging gradient is obvious
+// Velocity config — stored in localStorage, keyed by sourceId
 // ---------------------------------------------------------------------------
 
-const ago = (hours: number) => new Date(Date.now() - hours * 3_600_000);
+const VELOCITY_KEY = 'stream-velocity';
 
-const MOCK_SOURCES: Source[] = [
-  {
-    id: 's1',
-    title: 'Breaking Wire',
-    feedUrl: '',
-    velocityTier: 1,   // 3h half-life
-    isVoice: false,
-  },
-  {
-    id: 's2',
-    title: 'Tech Digest',
-    feedUrl: '',
-    velocityTier: 2,   // 12h half-life
-    isVoice: false,
-  },
-  {
-    id: 's3',
-    title: 'Long Reads',
-    feedUrl: '',
-    velocityTier: 4,   // 72h half-life
-    isVoice: false,
-  },
-  {
-    id: 's4',
-    title: 'Evergreen Weekly',
-    feedUrl: '',
-    velocityTier: 5,   // 168h half-life
-    isVoice: false,
-  },
-];
+type VelocityEntry = { tier: 1|2|3|4|5; isVoice: boolean };
+type VelocityConfig = Record<string, VelocityEntry>;
 
-const MOCK_ARTICLES: Article[] = [
-  // Breaking Wire (3h half-life) — 30m, 2h, 6h articles
-  {
-    id: 'a1',
-    sourceId: 's1',
-    title: 'Markets edge higher as central banks signal pause on rate rises',
-    author: 'Reuters',
-    url: '#',
-    content: 'Global equities climbed on Thursday after policymakers at two major central banks hinted they may hold rates steady at upcoming meetings, easing fears of a prolonged tightening cycle.',
-    publishedAt: ago(0.5),
-    isRead: false,
-    isStarred: false,
-  },
-  {
-    id: 'a2',
-    sourceId: 's1',
-    title: 'New wildfire warning issued for southern California counties',
-    author: 'AP',
-    url: '#',
-    content: 'The National Weather Service has issued a red flag warning covering parts of Los Angeles, Ventura, and San Bernardino counties through Saturday, citing strong offshore winds and critically low humidity.',
-    publishedAt: ago(2),
-    isRead: false,
-    isStarred: false,
-  },
-  {
-    id: 'a3',
-    sourceId: 's1',
-    title: 'UN Security Council holds emergency session over disputed territory',
-    author: 'AFP',
-    url: '#',
-    content: 'Members of the Security Council convened in an unscheduled session to discuss rising tensions along a disputed border, with several delegations calling for immediate de-escalation.',
-    publishedAt: ago(6),
-    isRead: false,
-    isStarred: false,
-  },
+function loadVelocityConfig(): VelocityConfig {
+  try {
+    return JSON.parse(localStorage.getItem(VELOCITY_KEY) ?? '{}');
+  } catch {
+    return {};
+  }
+}
 
-  // Tech Digest (12h half-life) — 1h, 10h, 20h articles
-  {
-    id: 'a4',
-    sourceId: 's2',
-    title: 'Valve quietly updates Steam Deck OLED firmware with new suspend behaviour',
-    author: 'Ars Technica',
-    url: '#',
-    content: 'The latest SteamOS beta introduces a revised power management model that dramatically reduces battery drain during standby, a persistent complaint since the OLED model launched.',
-    publishedAt: ago(1),
-    isRead: false,
-    isStarred: false,
-  },
-  {
-    id: 'a5',
-    sourceId: 's2',
-    title: 'Firefox 130 ships with cross-origin isolation improvements',
-    author: 'The Verge',
-    url: '#',
-    content: 'Mozilla has shipped Firefox 130, bringing changes to how the browser handles cross-origin isolation headers, making it easier for developers to enable SharedArrayBuffer without a full COOP/COEP deployment.',
-    publishedAt: ago(10),
-    isRead: false,
-    isStarred: false,
-  },
-  {
-    id: 'a6',
-    sourceId: 's2',
-    title: 'Open-source project releases offline-first sync library for SQLite',
-    author: 'Hacker News',
-    url: '#',
-    content: 'A small team of database engineers has published a permissive-licensed library that brings conflict-free replicated data type semantics to SQLite, targeting local-first applications.',
-    publishedAt: ago(20),
-    isRead: false,
-    isStarred: false,
-  },
+function saveVelocityConfig(cfg: VelocityConfig): void {
+  localStorage.setItem(VELOCITY_KEY, JSON.stringify(cfg));
+}
 
-  // Long Reads (72h half-life) — 5h, 48h, 90h articles
-  {
-    id: 'a7',
-    sourceId: 's3',
-    title: 'The cartography of forgetting: how maps make memory',
-    author: 'Aeon',
-    url: '#',
-    content: 'Every map is an argument about what matters. When we decide what to include and what to omit, we are not just recording space — we are shaping how future generations will remember it.',
-    publishedAt: ago(5),
-    isRead: false,
-    isStarred: false,
-  },
-  {
-    id: 'a8',
-    sourceId: 's3',
-    title: 'On slowness: a defence of the long project',
-    author: 'Craig Mod',
-    url: '#',
-    content: 'There is a particular kind of work that cannot be hurried. Not because the maker is slow, but because the work itself requires a duration — an accumulation of attention that has no shortcut.',
-    publishedAt: ago(48),
-    isRead: false,
-    isStarred: false,
-  },
-  {
-    id: 'a9',
-    sourceId: 's3',
-    title: 'Why economists keep getting inequality wrong',
-    author: 'Boston Review',
-    url: '#',
-    content: 'The models we use to measure economic inequality were designed in an era of wage labour and relatively stable asset prices. Neither assumption holds today, and the gap between what the models show and what people experience keeps widening.',
-    publishedAt: ago(90),
-    isRead: false,
-    isStarred: false,
-  },
-
-  // Evergreen Weekly (168h half-life) — 24h, 96h, 144h articles
-  {
-    id: 'a10',
-    sourceId: 's4',
-    title: 'A practical guide to CSS custom properties',
-    author: 'Smashing Magazine',
-    url: '#',
-    content: 'CSS custom properties are not just variables. They are scope-aware, inheritable, and dynamic at runtime — properties that make them fundamentally different from preprocessor variables.',
-    publishedAt: ago(24),
-    isRead: false,
-    isStarred: false,
-  },
-  {
-    id: 'a11',
-    sourceId: 's4',
-    title: 'How to write a technical decision record',
-    author: 'Joel on Software',
-    url: '#',
-    content: 'A decision record is a short document that captures an important architectural decision: what it was, why it was made, and what alternatives were considered. The value compounds over years.',
-    publishedAt: ago(96),
-    isRead: false,
-    isStarred: false,
-  },
-  {
-    id: 'a12',
-    sourceId: 's4',
-    title: 'The unreasonable effectiveness of plain text',
-    author: 'Paul Graham',
-    url: '#',
-    content: 'Plain text has survived every wave of software fashion for fifty years. The reason is not inertia. It is that plain text is the format closest to thought — and thought does not have a version number.',
-    publishedAt: ago(144),
-    isRead: false,
-    isStarred: false,
-  },
-];
+function applySavedVelocity(sources: Source[], cfg: VelocityConfig): Source[] {
+  const updated: VelocityConfig = { ...cfg };
+  const merged = sources.map(s => {
+    const saved = cfg[s.id];
+    if (!saved) {
+      // First time seeing this source — save default
+      updated[s.id] = { tier: 3, isVoice: false };
+      return s;
+    }
+    return { ...s, velocityTier: saved.tier, isVoice: saved.isVoice };
+  });
+  saveVelocityConfig(updated);
+  return merged;
+}
 
 // ---------------------------------------------------------------------------
+// Connection config — stored in localStorage (password included)
+// The PRD explicitly allows local credential storage for the web app.
+// ---------------------------------------------------------------------------
 
-const SOURCE_MAP = new Map<string, Source>(MOCK_SOURCES.map(s => [s.id, s]));
+const CONNECTION_KEY = 'stream-connection';
+
+type SavedConnection = AdapterConfig & { adapterId: string };
+
+function loadSavedConnection(): SavedConnection | null {
+  try {
+    const raw = localStorage.getItem(CONNECTION_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Article fetching — paginated, respects 2× max half-life fetch window
+// ---------------------------------------------------------------------------
+
+async function fetchAllArticles(
+  adapter: StreamAdapter,
+  sources: Source[],
+): Promise<Article[]> {
+  const maxHalfLife = sources.reduce(
+    (max, s) => Math.max(max, s.customHalfLife ?? HALF_LIVES[s.velocityTier]),
+    HALF_LIVES[3],
+  );
+  const since = new Date(Date.now() - 2 * maxHalfLife * 3_600_000);
+
+  const articles: Article[] = [];
+  let continuation: string | undefined;
+
+  do {
+    const result = await adapter.fetchArticles({ since, limit: 100, continuation });
+    articles.push(...result.articles);
+    continuation = result.continuation;
+
+    // Stop pagination once we've gone past the fetch window
+    const oldest = result.articles.at(-1);
+    if (oldest && oldest.publishedAt < since) break;
+  } while (continuation);
+
+  return articles;
+}
+
+// ---------------------------------------------------------------------------
+// App state machine
+// ---------------------------------------------------------------------------
+
+type AppState =
+  | { status: 'connect';  error?: string }
+  | { status: 'loading';  adapter: StreamAdapter }
+  | { status: 'ready';    adapter: StreamAdapter; sources: Source[]; articles: Article[] }
+  | { status: 'error';    message: string };
 
 export function App() {
   const { theme, toggle } = useTheme();
-
-  // Recalculate scores every 60s so cards age visibly during a session
+  const [state, setState] = useState<AppState>({ status: 'connect' });
+  const [refreshing, setRefreshing] = useState(false);
   const [now, setNow] = useState(() => Date.now());
+
+  // Live score recalculation every 60s
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 60_000);
     return () => clearInterval(id);
   }, []);
 
-  const scoredItems = scoreRiver(MOCK_ARTICLES, SOURCE_MAP, now);
-  const river = useRiver(scoredItems);
+  const loadData = useCallback(async (adapter: StreamAdapter) => {
+    setState({ status: 'loading', adapter });
+    try {
+      const rawSources = await adapter.fetchSources();
+      const sources    = applySavedVelocity(rawSources, loadVelocityConfig());
+      const articles   = await fetchAllArticles(adapter, sources);
+      setState({ status: 'ready', adapter, sources, articles });
+    } catch (err) {
+      setState({
+        status: 'error',
+        message: err instanceof Error ? err.message : 'Failed to load articles.',
+      });
+    }
+  }, []);
+
+  const handleConnect = useCallback(async (
+    adapter: StreamAdapter,
+    config: SavedConnection,
+  ) => {
+    localStorage.setItem(CONNECTION_KEY, JSON.stringify(config));
+    await loadData(adapter);
+  }, [loadData]);
+
+  const handleRefresh = useCallback(async () => {
+    if (state.status !== 'ready' || refreshing) return;
+    setRefreshing(true);
+    try {
+      const sources  = applySavedVelocity(
+        await state.adapter.fetchSources(), loadVelocityConfig()
+      );
+      const articles = await fetchAllArticles(state.adapter, sources);
+      setState(prev =>
+        prev.status === 'ready'
+          ? { ...prev, sources, articles }
+          : prev
+      );
+    } catch {
+      // Silent fail on refresh — keep existing data
+    } finally {
+      setRefreshing(false);
+    }
+  }, [state, refreshing]);
+
+  // Auto-connect on mount if credentials are saved
+  useEffect(() => {
+    const saved = loadSavedConnection();
+    if (!saved) return;
+
+    const adapter = new FreshRSSAdapter();
+    adapter.authenticate(saved).then(result => {
+      if (result.success) {
+        loadData(adapter);
+      } else {
+        setState({ status: 'connect', error: 'Session expired. Please reconnect.' });
+      }
+    }).catch(() => {
+      setState({ status: 'connect', error: 'Could not reach your server.' });
+    });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Render
+  const showRefresh = state.status === 'ready';
 
   return (
-    <AppShell theme={theme} onToggleTheme={toggle}>
-      <River
-        items={river.items}
-        focusedIndex={river.focusedIndex}
-        sourceMap={SOURCE_MAP}
-        pendingUndo={river.pendingUndo}
-        onDismiss={river.dismiss}
-        onSave={river.save}
-        onUndo={river.undo}
-      />
+    <AppShell
+      theme={theme}
+      onToggleTheme={toggle}
+      onRefresh={showRefresh ? handleRefresh : undefined}
+      refreshing={refreshing}
+    >
+      {state.status === 'connect' && (
+        <ConnectScreen
+          onConnect={handleConnect}
+          initialError={state.error}
+        />
+      )}
+
+      {state.status === 'loading' && (
+        <LoadingView />
+      )}
+
+      {state.status === 'error' && (
+        <ErrorView
+          message={state.message}
+          onRetry={() => setState({ status: 'connect' })}
+        />
+      )}
+
+      {state.status === 'ready' && (
+        <ReadyView
+          adapter={state.adapter}
+          sources={state.sources}
+          articles={state.articles}
+          now={now}
+        />
+      )}
     </AppShell>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Sub-views
+// ---------------------------------------------------------------------------
+
+function LoadingView() {
+  return (
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      minHeight: 'calc(100vh - 57px)',
+      fontFamily: 'var(--font-serif)',
+      color: 'var(--text-muted)',
+      fontSize: '1rem',
+    }}>
+      Loading your river…
+    </div>
+  );
+}
+
+interface ErrorViewProps {
+  message: string;
+  onRetry: () => void;
+}
+
+function ErrorView({ message, onRetry }: ErrorViewProps) {
+  return (
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: '1rem',
+      minHeight: 'calc(100vh - 57px)',
+      padding: '2rem',
+      fontFamily: 'var(--font-sans)',
+      color: 'var(--text-muted)',
+      textAlign: 'center',
+    }}>
+      <p style={{ margin: 0, fontSize: '0.9375rem' }}>{message}</p>
+      <button
+        onClick={onRetry}
+        style={{
+          padding: '0.5rem 1rem',
+          fontFamily: 'var(--font-sans)',
+          fontSize: '0.875rem',
+          fontWeight: 600,
+          color: 'var(--bg)',
+          background: 'var(--accent-new)',
+          borderRadius: 'var(--radius)',
+          border: 'none',
+          cursor: 'pointer',
+        }}
+      >
+        Reconnect
+      </button>
+    </div>
+  );
+}
+
+interface ReadyViewProps {
+  adapter: StreamAdapter;
+  sources: Source[];
+  articles: Article[];
+  now: number;
+}
+
+function ReadyView({ sources, articles, now }: ReadyViewProps) {
+  const sourceMap   = new Map(sources.map(s => [s.id, s]));
+  const scoredItems = scoreRiver(articles, sourceMap, now);
+  const river       = useRiver(scoredItems);
+
+  return (
+    <River
+      items={river.items}
+      focusedIndex={river.focusedIndex}
+      sourceMap={sourceMap}
+      pendingUndo={river.pendingUndo}
+      onDismiss={river.dismiss}
+      onSave={river.save}
+      onUndo={river.undo}
+    />
   );
 }
