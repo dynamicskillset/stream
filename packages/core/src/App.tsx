@@ -7,6 +7,7 @@ import { AppShell } from './components/AppShell.js';
 import { ConnectScreen } from './components/ConnectScreen.js';
 import { VelocitySettings } from './components/VelocitySettings.js';
 import { ReadingView } from './components/ReadingView.js';
+import { KeyboardHelp } from './components/KeyboardHelp.js';
 import { FreshRSSAdapter } from './adapters/freshrss.js';
 import { FeedbinAdapter } from './adapters/feedbin.js';
 import type { Article, Source, StreamAdapter, AdapterConfig } from './types.js';
@@ -341,6 +342,17 @@ interface ReadyViewProps {
 
 function ReadyView({ adapter, sources, articles, now, hidden }: ReadyViewProps) {
   const [openArticle, setOpenArticle] = useState<Article | null>(null);
+  const [showHelp, setShowHelp]       = useState(false);
+
+  // Global '?' shortcut — only when not typing in an input
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.target as HTMLElement).matches('input, textarea, select, [contenteditable]')) return;
+      if (e.key === '?') { e.preventDefault(); setShowHelp(prev => !prev); }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
 
   const sourceMap   = new Map(sources.map(s => [s.id, s]));
   const scoredItems = scoreRiver(articles, sourceMap, now);
@@ -384,6 +396,7 @@ function ReadyView({ adapter, sources, articles, now, hidden }: ReadyViewProps) 
           onClose={() => setOpenArticle(null)}
         />
       )}
+      {showHelp && <KeyboardHelp onClose={() => setShowHelp(false)} />}
     </div>
   );
 }

@@ -11,7 +11,7 @@ const TIERS: Array<{ tier: 1|2|3|4|5; label: string }> = [
   { tier: 5, label: '7d' },
 ];
 
-type ImportStatus = { type: 'idle' } | { type: 'loading' } | { type: 'ok'; count: number } | { type: 'error'; message: string };
+type AsyncStatus = { type: 'idle' } | { type: 'loading' } | { type: 'ok'; message: string } | { type: 'error'; message: string };
 
 interface VelocitySettingsProps {
   sources: Source[];
@@ -21,8 +21,10 @@ interface VelocitySettingsProps {
 }
 
 export function VelocitySettings({ sources, adapter, onUpdate, onImported }: VelocitySettingsProps) {
-  const [query, setQuery] = useState('');
-  const [importStatus, setImportStatus] = useState<ImportStatus>({ type: 'idle' });
+  const [query, setQuery]             = useState('');
+  const [importStatus, setImportStatus] = useState<AsyncStatus>({ type: 'idle' });
+  const [addStatus, setAddStatus]     = useState<AsyncStatus>({ type: 'idle' });
+  const [feedUrl, setFeedUrl]         = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = async (e: Event) => {
@@ -31,16 +33,32 @@ export function VelocitySettings({ sources, adapter, onUpdate, onImported }: Vel
 
     setImportStatus({ type: 'loading' });
     try {
-      const xml    = await file.text();
-      const added  = await adapter.importOPML(xml);
-      setImportStatus({ type: 'ok', count: added.length });
+      const xml   = await file.text();
+      const added = await adapter.importOPML(xml);
+      setImportStatus({ type: 'ok', message: `✓ ${added.length} feeds added` });
       onImported?.();
       setTimeout(() => setImportStatus({ type: 'idle' }), 3_000);
     } catch (err) {
       setImportStatus({ type: 'error', message: err instanceof Error ? err.message : 'Import failed.' });
     } finally {
-      // Reset so the same file can be re-selected
       if (fileRef.current) fileRef.current.value = '';
+    }
+  };
+
+  const handleAddFeed = async (e: Event) => {
+    e.preventDefault();
+    const url = feedUrl.trim();
+    if (!url || !adapter) return;
+
+    setAddStatus({ type: 'loading' });
+    try {
+      await adapter.addSource(url);
+      setAddStatus({ type: 'ok', message: '✓ Feed added' });
+      setFeedUrl('');
+      onImported?.();
+      setTimeout(() => setAddStatus({ type: 'idle' }), 3_000);
+    } catch (err) {
+      setAddStatus({ type: 'error', message: err instanceof Error ? err.message : 'Could not add feed.' });
     }
   };
 
@@ -72,7 +90,7 @@ export function VelocitySettings({ sources, adapter, onUpdate, onImported }: Vel
               {importStatus.type === 'loading' ? 'Importing…' : 'Import OPML'}
             </button>
             {importStatus.type === 'ok' && (
-              <span class={styles.importOk}>✓ {importStatus.count} feeds added</span>
+              <span class={styles.importOk}>{importStatus.message}</span>
             )}
             {importStatus.type === 'error' && (
               <span class={styles.importErr}>{importStatus.message}</span>
@@ -83,6 +101,30 @@ export function VelocitySettings({ sources, adapter, onUpdate, onImported }: Vel
       <p class={styles.sub}>
         How quickly should each source's articles fade? Shorter = faster.
       </p>
+
+      {adapter && (
+        <form class={styles.addForm} onSubmit={handleAddFeed}>
+          <input
+            class={styles.addInput}
+            type="url"
+            placeholder="https://example.com/feed.xml"
+            value={feedUrl}
+            onInput={e => setFeedUrl((e.target as HTMLInputElement).value)}
+            aria-label="Feed URL"
+            spellcheck={false}
+            autocomplete="off"
+          />
+          <button
+            class={styles.importBtn}
+            type="submit"
+            disabled={addStatus.type === 'loading' || !feedUrl.trim()}
+          >
+            {addStatus.type === 'loading' ? 'Adding…' : 'Add feed'}
+          </button>
+          {addStatus.type === 'ok'    && <span class={styles.importOk}>{addStatus.message}</span>}
+          {addStatus.type === 'error' && <span class={styles.importErr}>{addStatus.message}</span>}
+        </form>
+      )}
 
       <input
         class={styles.search}
