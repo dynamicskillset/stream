@@ -128,7 +128,10 @@ export class FeedbinAdapter implements StreamAdapter {
       fetch(proxyUrl(`${FEEDBIN_BASE}/subscriptions.json`), { headers: this.authHeaders() }),
       fetch(proxyUrl(`${FEEDBIN_BASE}/taggings.json`),      { headers: this.authHeaders() }),
     ]);
-    if (!subsRes.ok) throw new Error(`fetchSources failed: HTTP ${subsRes.status}`);
+    if (!subsRes.ok) {
+      const body = await subsRes.text().catch(() => '');
+      throw new Error(`fetchSources failed: HTTP ${subsRes.status}${body ? ` — ${body}` : ''}`);
+    }
 
     const subs: RawSubscription[] = await subsRes.json();
     const taggings: RawTagging[]  = taggingsRes.ok ? await taggingsRes.json() : [];
@@ -158,7 +161,10 @@ export class FeedbinAdapter implements StreamAdapter {
     const res = await fetch(proxyUrl(`${FEEDBIN_BASE}/taggings.json`), {
       headers: this.authHeaders(),
     });
-    if (!res.ok) throw new Error(`fetchCategories failed: HTTP ${res.status}`);
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      throw new Error(`fetchCategories failed: HTTP ${res.status}${body ? ` — ${body}` : ''}`);
+    }
 
     const taggings: RawTagging[] = await res.json();
 
@@ -182,7 +188,10 @@ export class FeedbinAdapter implements StreamAdapter {
       options.continuation ? null : this.fetchIdList('starred_entries'),
     ]);
 
-    if (!entriesRes.ok) throw new Error(`fetchArticles failed: HTTP ${entriesRes.status}`);
+    if (!entriesRes.ok) {
+      const body = await entriesRes.text().catch(() => '');
+      throw new Error(`fetchArticles failed: HTTP ${entriesRes.status}${body ? ` — ${body}` : ''}`);
+    }
 
     if (freshUnread  !== null) this.unreadIds  = new Set(freshUnread.map(String));
     if (freshStarred !== null) this.starredIds = new Set(freshStarred.map(String));

@@ -58,7 +58,7 @@ export const handler = async (event: NetlifyEvent): Promise<NetlifyResponse> => 
     upstream = await fetch(targetUrl, {
       method:  event.httpMethod,
       headers: reqHeaders,
-      body:    event.body ?? undefined,
+      body:    event.body || undefined,
     });
   } catch (err) {
     return {

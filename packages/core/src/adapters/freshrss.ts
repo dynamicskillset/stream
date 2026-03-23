@@ -200,7 +200,10 @@ export class FreshRSSAdapter implements StreamAdapter {
       this.proxyUrl(`${this.baseUrl}/api/greader.php/reader/api/0/subscription/list?output=json`),
       { headers: this.authHeaders() },
     );
-    if (!res.ok) throw new Error(`fetchSources failed: HTTP ${res.status}`);
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      throw new Error(`fetchSources failed: HTTP ${res.status}${body ? ` — ${body}` : ''}`);
+    }
 
     const data: { subscriptions?: RawSubscription[] } = await res.json();
 
@@ -221,7 +224,10 @@ export class FreshRSSAdapter implements StreamAdapter {
       this.proxyUrl(`${this.baseUrl}/api/greader.php/reader/api/0/tag/list?output=json`),
       { headers: this.authHeaders() },
     );
-    if (!res.ok) throw new Error(`fetchCategories failed: HTTP ${res.status}`);
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      throw new Error(`fetchCategories failed: HTTP ${res.status}${body ? ` — ${body}` : ''}`);
+    }
 
     const data: { tags?: RawTag[] } = await res.json();
 
@@ -248,7 +254,10 @@ export class FreshRSSAdapter implements StreamAdapter {
       { headers: this.authHeaders() },
     );
 
-    if (!res.ok) throw new Error(`fetchArticles failed: HTTP ${res.status}`);
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      throw new Error(`fetchArticles failed: HTTP ${res.status}${body ? ` — ${body}` : ''}`);
+    }
 
     const data: RawStreamContents = await res.json();
     const articles = (data.items ?? []).map(normaliseItem);
