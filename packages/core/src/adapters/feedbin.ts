@@ -11,6 +11,17 @@ import type {
 
 const FEEDBIN_BASE = 'https://api.feedbin.com/v2';
 
+function proxyUrl(url: string): string {
+  if (import.meta.env.DEV) {
+    return `/dev-proxy?url=${encodeURIComponent(url)}`;
+  }
+  const base = import.meta.env.VITE_PROXY_URL;
+  if (base) {
+    return `${base}?url=${encodeURIComponent(url)}`;
+  }
+  return url;
+}
+
 // ---------------------------------------------------------------------------
 // Raw Feedbin API shapes
 // ---------------------------------------------------------------------------
@@ -73,8 +84,6 @@ function normaliseSource(sub: RawSubscription): Source {
  * Auth: HTTP Basic (email + password) on every request.
  * Docs: https://github.com/feedbin/feedbin-api
  *
- * Note: Feedbin supports CORS, so no dev-proxy is needed.
- *
  * source.id = String(feed_id) — matches entry.feed_id for sourceMap lookups.
  * A private map caches feed_id → subscription.id for removeSource.
  */
@@ -93,7 +102,7 @@ export class FeedbinAdapter implements StreamAdapter {
   async authenticate(config: AdapterConfig): Promise<AuthResult> {
     this.credentials = btoa(`${config.username ?? ''}:${config.password ?? ''}`);
 
-    const res = await fetch(`${FEEDBIN_BASE}/authentication.json`, {
+    const res = await fetch(proxyUrl(`${FEEDBIN_BASE}/authentication.json`), {
       headers: this.authHeaders(),
     });
 
@@ -116,8 +125,8 @@ export class FeedbinAdapter implements StreamAdapter {
 
   async fetchSources(): Promise<Source[]> {
     const [subsRes, taggingsRes] = await Promise.all([
-      fetch(`${FEEDBIN_BASE}/subscriptions.json`, { headers: this.authHeaders() }),
-      fetch(`${FEEDBIN_BASE}/taggings.json`,      { headers: this.authHeaders() }),
+      fetch(proxyUrl(`${FEEDBIN_BASE}/subscriptions.json`), { headers: this.authHeaders() }),
+      fetch(proxyUrl(`${FEEDBIN_BASE}/taggings.json`),      { headers: this.authHeaders() }),
     ]);
     if (!subsRes.ok) throw new Error(`fetchSources failed: HTTP ${subsRes.status}`);
 
@@ -146,7 +155,7 @@ export class FeedbinAdapter implements StreamAdapter {
   }
 
   async fetchCategories(): Promise<Category[]> {
-    const res = await fetch(`${FEEDBIN_BASE}/taggings.json`, {
+    const res = await fetch(proxyUrl(`${FEEDBIN_BASE}/taggings.json`), {
       headers: this.authHeaders(),
     });
     if (!res.ok) throw new Error(`fetchCategories failed: HTTP ${res.status}`);
@@ -168,7 +177,7 @@ export class FeedbinAdapter implements StreamAdapter {
 
     // On the first page, refresh unread + starred ID sets in parallel
     const [entriesRes, freshUnread, freshStarred] = await Promise.all([
-      fetch(`${FEEDBIN_BASE}/entries.json?${params}`, { headers: this.authHeaders() }),
+      fetch(proxyUrl(`${FEEDBIN_BASE}/entries.json?${params}`), { headers: this.authHeaders() }),
       options.continuation ? null : this.fetchIdList('unread_entries'),
       options.continuation ? null : this.fetchIdList('starred_entries'),
     ]);
@@ -203,7 +212,7 @@ export class FeedbinAdapter implements StreamAdapter {
   // --- State ----------------------------------------------------------------
 
   async setArticleRead(articleId: string): Promise<void> {
-    await fetch(`${FEEDBIN_BASE}/unread_entries.json`, {
+    await fetch(proxyUrl(`${FEEDBIN_BASE}/unread_entries.json`), {
       method:  'DELETE',
       headers: { ...this.authHeaders(), 'Content-Type': 'application/json' },
       body:    JSON.stringify({ unread_entries: [parseInt(articleId, 10)] }),
@@ -211,7 +220,7 @@ export class FeedbinAdapter implements StreamAdapter {
   }
 
   async setArticleStarred(articleId: string, starred: boolean): Promise<void> {
-    await fetch(`${FEEDBIN_BASE}/starred_entries.json`, {
+    await fetch(proxyUrl(`${FEEDBIN_BASE}/starred_entries.json`), {
       method:  starred ? 'POST' : 'DELETE',
       headers: { ...this.authHeaders(), 'Content-Type': 'application/json' },
       body:    JSON.stringify({ starred_entries: [parseInt(articleId, 10)] }),
@@ -224,7 +233,7 @@ export class FeedbinAdapter implements StreamAdapter {
     // Delete existing tagging for this feed, if any
     const oldTaggingId = this.feedIdToTaggingId.get(sourceId);
     if (oldTaggingId !== undefined) {
-      await fetch(`${FEEDBIN_BASE}/taggings/${oldTaggingId}.json`, {
+      await fetch(proxyUrl(`${FEEDBIN_BASE}/taggings/${oldTaggingId}.json`), {
         method:  'DELETE',
         headers: this.authHeaders(),
       });
@@ -232,7 +241,7 @@ export class FeedbinAdapter implements StreamAdapter {
     }
 
     // Create new tagging (categoryId is the tag name for Feedbin)
-    const res = await fetch(`${FEEDBIN_BASE}/taggings.json`, {
+    const res = await fetch(proxyUrl(`${FEEDBIN_BASE}/taggings.json`), {
       method:  'POST',
       headers: { ...this.authHeaders(), 'Content-Type': 'application/json' },
       body:    JSON.stringify({ feed_id: parseInt(sourceId, 10), name: categoryId }),
@@ -248,7 +257,7 @@ export class FeedbinAdapter implements StreamAdapter {
   }
 
   async addSource(feedUrl: string): Promise<Source> {
-    const res = await fetch(`${FEEDBIN_BASE}/subscriptions.json`, {
+    const res = await fetch(proxyUrl(`${FEEDBIN_BASE}/subscriptions.json`), {
       method:  'POST',
       headers: { ...this.authHeaders(), 'Content-Type': 'application/json' },
       body:    JSON.stringify({ feed_url: feedUrl }),
@@ -266,7 +275,7 @@ export class FeedbinAdapter implements StreamAdapter {
     const subId = this.feedIdToSubId.get(sourceId);
     if (!subId) throw new Error('Subscription ID not found — call fetchSources first');
 
-    const res = await fetch(`${FEEDBIN_BASE}/subscriptions/${subId}.json`, {
+    const res = await fetch(proxyUrl(`${FEEDBIN_BASE}/subscriptions/${subId}.json`), {
       method:  'DELETE',
       headers: this.authHeaders(),
     });
@@ -304,7 +313,7 @@ export class FeedbinAdapter implements StreamAdapter {
   }
 
   private async fetchIdList(resource: 'unread_entries' | 'starred_entries'): Promise<number[]> {
-    const res = await fetch(`${FEEDBIN_BASE}/${resource}.json`, {
+    const res = await fetch(proxyUrl(`${FEEDBIN_BASE}/${resource}.json`), {
       headers: this.authHeaders(),
     });
     if (!res.ok) return [];
