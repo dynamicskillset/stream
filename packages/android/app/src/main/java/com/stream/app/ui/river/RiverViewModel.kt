@@ -57,7 +57,7 @@ class RiverViewModel @Inject constructor(
 
     @Suppress("UNCHECKED_CAST")
     val state: StateFlow<RiverUiState> = combine(
-        flows = arrayOf(
+        listOf(
             repository.articles,
             repository.sources,
             repository.categories,

@@ -38,7 +38,7 @@ class SettingsViewModel @Inject constructor(
 
     @Suppress("UNCHECKED_CAST")
     val state: StateFlow<SettingsUiState> = combine(
-        flows = arrayOf(
+        listOf(
             repository.sources,
             repository.categories,
             repository.displayPrefs,

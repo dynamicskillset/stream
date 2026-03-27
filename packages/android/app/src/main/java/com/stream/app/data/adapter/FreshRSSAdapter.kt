@@ -317,11 +317,11 @@ class FreshRSSAdapter(private val client: OkHttpClient) : StreamAdapter {
             .apply { authHeaders().forEach { (k, v) -> header(k, v) } }
             .build()
         val response = client.newCall(request).execute()
+        val body = response.body?.string() ?: ""
         if (!response.isSuccessful) {
-            val body = response.body?.string() ?: ""
             throw RuntimeException("GET $url failed: HTTP ${response.code}${if (body.isNotEmpty()) " \u2014 $body" else ""}")
         }
-        return response.body?.string() ?: ""
+        return body
     }
 
     private fun normaliseItem(item: JsonObject): Article {

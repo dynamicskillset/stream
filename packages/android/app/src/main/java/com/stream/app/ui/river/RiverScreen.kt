@@ -160,8 +160,6 @@ fun RiverScreen(
                         SwipeToDismissBox(
                             state = dismissState,
                             backgroundContent = {},
-                            enableDismissFromStartToEnd = true,
-                            enableDismissFromEndToStart = true,
                         ) {
                             RiverCard(
                                 scored = scored,
