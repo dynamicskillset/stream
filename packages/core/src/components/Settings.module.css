@@ -486,3 +486,11 @@ details[open] > .sectionHeading::before {
 }
 
 .suggestionDismiss:hover { color: var(--text); }
+
+/* Export & import */
+.dataActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}

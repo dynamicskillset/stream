@@ -34,9 +34,35 @@ interface SettingsProps {
   onDismissSuggestion?: (sourceId: string) => void;
 }
 
+const EXPORT_VERSION = '1';
+const EXPORT_KEYS: Record<string, string> = {
+  velocity: 'stream-velocity',
+  display:  'stream-display',
+  muted:    'stream-muted-sources',
+};
+
+function handleExport() {
+  const data: Record<string, unknown> = {
+    version:    EXPORT_VERSION,
+    exportedAt: new Date().toISOString(),
+  };
+  for (const [field, key] of Object.entries(EXPORT_KEYS)) {
+    try { data[field] = JSON.parse(localStorage.getItem(key) ?? 'null'); } catch { /* skip */ }
+  }
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `stream-settings-${new Date().toISOString().slice(0, 10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export function Settings({ sources, categories, adapter, onUpdate, onCategoryChange, onImported, mutedEntries, onUnmute, suggestions, onApplySuggestion, onDismissSuggestion }: SettingsProps) {
   const [query, setQuery]             = useState('');
   const [importStatus, setImportStatus] = useState<AsyncStatus>({ type: 'idle' });
+  const [dataImportStatus, setDataImportStatus] = useState<AsyncStatus>({ type: 'idle' });
+  const dataFileRef = useRef<HTMLInputElement>(null);
   const [addStatus, setAddStatus]     = useState<AsyncStatus>({ type: 'idle' });
   const [feedUrl, setFeedUrl]         = useState('');
   const [display, setDisplay]         = useState<DisplayPrefs>(loadDisplayPrefs);
@@ -78,6 +104,27 @@ export function Settings({ sources, categories, adapter, onUpdate, onCategoryCha
       setTimeout(() => setAddStatus({ type: 'idle' }), 3_000);
     } catch (err) {
       setAddStatus({ type: 'error', message: err instanceof Error ? err.message : 'Could not add feed.' });
+    }
+  };
+
+  const handleDataImport = async (e: Event) => {
+    const file = (e.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    setDataImportStatus({ type: 'loading' });
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text) as Record<string, unknown>;
+      if (data.version !== EXPORT_VERSION) throw new Error('Incompatible export version.');
+      for (const [field, key] of Object.entries(EXPORT_KEYS)) {
+        if (data[field] !== null && data[field] !== undefined) {
+          localStorage.setItem(key, JSON.stringify(data[field]));
+        }
+      }
+      setDataImportStatus({ type: 'ok', message: '✓ Settings imported — reload to apply' });
+    } catch (err) {
+      setDataImportStatus({ type: 'error', message: err instanceof Error ? err.message : 'Import failed.' });
+    } finally {
+      if (dataFileRef.current) dataFileRef.current.value = '';
     }
   };
 
@@ -296,6 +343,36 @@ export function Settings({ sources, categories, adapter, onUpdate, onCategoryCha
           </div>
         </details>
       )}
+
+      <details class={styles.section}>
+        <summary class={styles.sectionHeading}>Export &amp; import</summary>
+        <p class={styles.sub}>
+          Export your velocity tiers, display settings, and muted sources as a JSON file.
+          Import on another device or browser to restore your configuration.
+        </p>
+        <div class={styles.dataActions}>
+          <button class={styles.importBtn} onClick={handleExport}>
+            Export settings
+          </button>
+          <input
+            ref={dataFileRef}
+            type="file"
+            accept=".json"
+            class={styles.fileInput}
+            aria-label="Import settings file"
+            onChange={handleDataImport}
+          />
+          <button
+            class={styles.importBtn}
+            onClick={() => dataFileRef.current?.click()}
+            disabled={dataImportStatus.type === 'loading'}
+          >
+            {dataImportStatus.type === 'loading' ? 'Importing…' : 'Import settings'}
+          </button>
+          {dataImportStatus.type === 'ok'    && <span class={styles.importOk}>{dataImportStatus.message}</span>}
+          {dataImportStatus.type === 'error' && <span class={styles.importErr}>{dataImportStatus.message}</span>}
+        </div>
+      </details>
 
       <footer class={styles.footer}>
         <a
