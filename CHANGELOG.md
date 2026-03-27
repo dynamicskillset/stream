@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.2
+
+### Reading experience
+
+- **Estimated reading time** — article cards and the reading view now show a reading time estimate (e.g. "4 min"), calculated from word count. Only shown for articles with enough content (50+ words).
+- **Open original shortcut** — press `b` in the river to open the focused article's original URL in a new tab, without entering the reading view first.
+- **Share / copy link** — share button (↑) on article cards and in the reading view. Uses the native share sheet where available; falls back to copying the link to the clipboard with a brief ✓ confirmation. Also available as the `c` keyboard shortcut.
+- **Reading progress bookmark** — scroll position in the reading view is saved automatically as you read. If you reopen an article you were partway through, it quietly returns you to where you left off. Saved positions expire after 7 days.
+
 ## 0.4.0
 
 Consolidates 0.3.0 and 0.3.1 into a single release to align app and landing page versioning.
