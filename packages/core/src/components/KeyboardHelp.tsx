@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'preact/hooks';
 import styles from './KeyboardHelp.module.css';
 
 const SHORTCUTS = [
-  { key: 'j / k',       desc: 'Navigate down / up' },
+  { key: 'j / k',       desc: 'Navigate up / down' },
   { key: 'Enter / o',   desc: 'Open article' },
   { key: 'b',           desc: 'Open in browser (new tab)' },
   { key: 'c',           desc: 'Copy link / share' },

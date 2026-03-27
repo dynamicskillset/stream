@@ -110,13 +110,13 @@ export function useRiver(
         case 'j':
           e.preventDefault();
           setFocusedIndex(prev =>
-            prev === -1 ? 0 : Math.min(prev + 1, cur.length - 1)
+            Math.max(0, prev === -1 ? 0 : prev - 1)
           );
           break;
         case 'k':
           e.preventDefault();
           setFocusedIndex(prev =>
-            Math.max(0, prev === -1 ? 0 : prev - 1)
+            prev === -1 ? 0 : Math.min(prev + 1, cur.length - 1)
           );
           break;
         case 'Enter':
