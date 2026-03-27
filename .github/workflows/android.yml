@@ -40,16 +40,14 @@ jobs:
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
-
-      - name: Generate Gradle wrapper
-        run: |
-          gradle wrapper --gradle-version 8.11.1
+        with:
+          gradle-version: '8.11.1'
 
       - name: Build debug APK
-        run: ./gradlew assembleDebug
+        run: gradle assembleDebug
 
       - name: Build release APK
-        run: ./gradlew assembleRelease
+        run: gradle assembleRelease
 
       - name: Upload debug APK artifact
         uses: actions/upload-artifact@v4
