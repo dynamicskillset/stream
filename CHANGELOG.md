@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.5.0
+
+### River control
+
+- **Source muting** — mute any source directly from a card for 1 day, 1 week, or 1 month. The source's articles vanish from the river and return automatically when the mute expires. A "Muted sources" section in Settings lists active mutes and allows early unmuting.
+- **River pause** — a ⏸ button in the header freezes the decay clock. While paused, articles do not fade further. Resuming picks up exactly where the clock left off; time spent paused does not count against article ages.
+
+### Velocity intelligence
+
+- **Auto-velocity suggestions** — Stream observes which articles you open and, after enough data accumulates, surfaces advisory suggestions in the Velocity settings section. High-engagement sources on fast tiers get a "slow down" nudge; unread sources on slow tiers get a "speed up" nudge. Each suggestion can be applied immediately or dismissed for 30 days.
+
+### Portability
+
+- **Settings export and import** — export your velocity tiers, display preferences, and muted sources as a dated JSON file. Import on another device or browser to restore your configuration. Connection credentials and ephemeral state are intentionally excluded from the export.
+
 ## 0.4.2
 
 ### Reading experience
