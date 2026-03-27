@@ -30,6 +30,12 @@ export function ReadingView({ article, source, isSaved, onSave, onClose }: Readi
   const relTime = useRelativeTime(article.publishedAt);
   const overlayRef = useRef<HTMLDivElement>(null);
 
+  const readingMins = (() => {
+    const words = article.content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().split(/\s+/).filter(Boolean).length;
+    if (words < 50) return null;
+    return Math.max(1, Math.ceil(words / 200));
+  })();
+
   // Close on Escape + focus trap
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -105,6 +111,14 @@ export function ReadingView({ article, source, isSaved, onSave, onClose }: Readi
             <time class={styles.time} dateTime={article.publishedAt.toISOString()}>
               {relTime}
             </time>
+            {readingMins !== null && (
+              <>
+                <span class={styles.dot} aria-hidden="true">●</span>
+                <span class={styles.time} aria-label={`${readingMins} minute read`}>
+                  {readingMins} min read
+                </span>
+              </>
+            )}
           </div>
         )}
 

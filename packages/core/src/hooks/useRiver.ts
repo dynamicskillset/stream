@@ -142,6 +142,12 @@ export function useRiver(
           e.preventDefault();
           undo();
           break;
+        case 'b':
+          if (fi >= 0 && fi < cur.length) {
+            e.preventDefault();
+            window.open(cur[fi].article.url, '_blank', 'noopener,noreferrer');
+          }
+          break;
       }
     };
 

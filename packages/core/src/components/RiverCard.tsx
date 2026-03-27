@@ -14,6 +14,12 @@ function makePreview(html: string): string {
   return text.slice(0, 100).replace(/\s\S*$/, '') + '\u2026';
 }
 
+function readingMins(html: string): number | null {
+  const words = stripHtml(html).split(/\s+/).filter(Boolean).length;
+  if (words < 50) return null;
+  return Math.max(1, Math.ceil(words / 200));
+}
+
 // Maps score (0.05–1.0) to card-age (0.0 = fresh, 1.0 = near-threshold)
 function scoreToAge(score: number): number {
   const age = 1 - (score - VISIBILITY_THRESHOLD) / (1 - VISIBILITY_THRESHOLD);
@@ -45,6 +51,7 @@ export function RiverCard({
   const relTime = useRelativeTime(article.publishedAt);
   const cardAge = scoreToAge(scored.score);
   const preview = makePreview(article.content);
+  const mins = readingMins(article.content);
 
   const handleFaviconError = (e: Event) => {
     (e.target as HTMLImageElement).setAttribute('data-error', '');
@@ -83,6 +90,12 @@ export function RiverCard({
         <time class={styles.time} dateTime={article.publishedAt.toISOString()}>
           {relTime}
         </time>
+
+        {mins !== null && (
+          <span class={styles.readingTime} aria-label={`${mins} minute read`}>
+            · {mins} min
+          </span>
+        )}
 
         <div class={styles.actions}>
           <button
