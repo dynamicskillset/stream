@@ -43,23 +43,25 @@ jobs:
         with:
           gradle-version: '8.11.1'
 
-      - name: Build debug APK
-        run: gradle assembleDebug
+      - name: Decode signing keystore
+        if: github.event_name != 'pull_request'
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > /tmp/stream-release.jks
+        working-directory: .
 
       - name: Build release APK
+        env:
+          KEYSTORE_FILE: ${{ github.event_name != 'pull_request' && '/tmp/stream-release.jks' || '' }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: gradle assembleRelease
 
-      - name: Upload debug APK artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: stream-debug
-          path: packages/android/app/build/outputs/apk/debug/app-debug.apk
-
-      - name: Upload release APK artifact
+      - name: Upload release APK
         uses: actions/upload-artifact@v4
         with:
           name: stream-release
-          path: packages/android/app/build/outputs/apk/release/app-release-unsigned.apk
+          path: packages/android/app/build/outputs/apk/release/app-release.apk
 
   release:
     needs: build
@@ -88,7 +90,6 @@ jobs:
         run: |
           VERSION="${{ steps.version.outputs.version }}"
           BASE_TAG="android-v$VERSION"
-          # Fetch tags to check for duplicates
           git fetch --tags
           if git rev-parse "$BASE_TAG" >/dev/null 2>&1; then
             SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
@@ -107,16 +108,8 @@ jobs:
           body: |
             ## Stream for Android
 
-            Install the APK on your Android device (Settings > Install unknown apps).
-
-            | File | Description |
-            |------|-------------|
-            | `app-debug.apk` | Debug build with logging enabled |
-            | `app-release-unsigned.apk` | Optimized & minified (unsigned) |
-
-            > To sign the release APK for Play Store distribution, use `apksigner` with your keystore.
+            Download and install the APK on your Android device (Settings > Install unknown apps).
           files: |
-            artifacts/stream-debug/app-debug.apk
-            artifacts/stream-release/app-release-unsigned.apk
+            artifacts/stream-release/app-release.apk
           draft: false
           prerelease: false
