@@ -37,3 +37,6 @@ Thumbs.db
 
 # Cache
 .cache/
+
+# Playwright MCP test artifacts
+.playwright-mcp/
