@@ -36,16 +36,18 @@ class SettingsViewModel @Inject constructor(
     private val _addFeedStatus = MutableStateFlow<String?>(null)
     private val _searchQuery = MutableStateFlow("")
 
+    @Suppress("UNCHECKED_CAST")
     val state: StateFlow<SettingsUiState> = combine(
-        repository.sources,
-        repository.categories,
-        repository.displayPrefs,
-        repository.mutedSources,
-        _addFeedUrl,
-        _addFeedStatus,
-        _searchQuery,
+        flows = arrayOf(
+            repository.sources,
+            repository.categories,
+            repository.displayPrefs,
+            repository.mutedSources,
+            _addFeedUrl,
+            _addFeedStatus,
+            _searchQuery,
+        ),
     ) { values ->
-        @Suppress("UNCHECKED_CAST")
         SettingsUiState(
             sources = values[0] as List<Source>,
             categories = values[1] as List<Category>,

@@ -55,19 +55,21 @@ class RiverViewModel @Inject constructor(
 
     val isConnected: StateFlow<Boolean> = repository.isConnected
 
+    @Suppress("UNCHECKED_CAST")
     val state: StateFlow<RiverUiState> = combine(
-        repository.articles,
-        repository.sources,
-        repository.categories,
-        repository.mutedSources,
-        repository.quietHours,
-        _activeCategory,
-        _unreadOnly,
-        _savedOnly,
-        _dismissedIds,
-        _pendingUndo,
+        flows = arrayOf(
+            repository.articles,
+            repository.sources,
+            repository.categories,
+            repository.mutedSources,
+            repository.quietHours,
+            _activeCategory,
+            _unreadOnly,
+            _savedOnly,
+            _dismissedIds,
+            _pendingUndo,
+        ),
     ) { values ->
-        @Suppress("UNCHECKED_CAST")
         val articles = values[0] as List<Article>
         val sources = values[1] as List<Source>
         val categories = values[2] as List<Category>
