@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Stream "S" wave icon on transparent foreground -->
+    <path
+        android:fillColor="#ECEFF4"
+        android:pathData="M42,34 C42,34 52,34 58,40 C64,46 64,52 58,58 C52,64 42,64 42,64 C42,64 52,64 58,70 C64,76 64,82 58,82 C52,82 42,82 42,82"
+        android:strokeColor="#ECEFF4"
+        android:strokeWidth="4"
+        android:strokeLineCap="round" />
+</vector>
