@@ -37,6 +37,8 @@ interface AppShellProps {
   onSettings?: () => void;
   inSettings?: boolean;
   onLogoClick?: () => void;
+  paused?: boolean;
+  onTogglePause?: () => void;
   children: ComponentChildren;
 }
 
@@ -48,6 +50,8 @@ export function AppShell({
   onSettings,
   inSettings,
   onLogoClick,
+  paused,
+  onTogglePause,
   children,
 }: AppShellProps) {
   return (
@@ -69,6 +73,16 @@ export function AppShell({
             <span class={styles.version}>{version}</span>
           </div>
           <div class={styles.controls}>
+            {onTogglePause && (
+              <button
+                class={`${styles.themeBtn} ${paused ? styles.active : ''}`}
+                onClick={onTogglePause}
+                aria-label={paused ? 'Resume river (unpause)' : 'Pause river'}
+                title={paused ? 'River paused — click to resume' : 'Pause river'}
+              >
+                {paused ? '▶' : '⏸'}
+              </button>
+            )}
             {onRefresh && (
               <button
                 class={`${styles.themeBtn} ${refreshing ? styles.spinning : ''}`}

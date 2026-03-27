@@ -13,6 +13,7 @@ import { FreshRSSAdapter } from './adapters/freshrss.js';
 import { FeedbinAdapter } from './adapters/feedbin.js';
 import { loadDisplayPrefs, applyDisplayPrefs } from './displayPrefs.js';
 import { activeMutedIds, muteSource, unmuteSource, cleanExpiredMutes, getMutedSources, type MuteEntry } from './mutedSources.js';
+import { isPaused, pauseRiver, resumeRiver, effectiveNow } from './quietHours.js';
 import type { Article, Category, Source, StreamAdapter, AdapterConfig } from './types.js';
 import './theme.css';
 
@@ -123,6 +124,7 @@ export function App() {
     return activeMutedIds();
   });
   const [mutedEntries, setMutedEntries] = useState<MuteEntry[]>(() => getMutedSources());
+  const [paused, setPaused] = useState(() => isPaused());
 
   // Apply saved display prefs on mount (text size, fade intensity, accent colour)
   useEffect(() => {
@@ -240,6 +242,17 @@ export function App() {
     }
   }, [state, refreshing]);
 
+  const handleTogglePause = useCallback(() => {
+    if (isPaused()) {
+      resumeRiver();
+      setPaused(false);
+    } else {
+      pauseRiver();
+      setPaused(true);
+    }
+    setNow(Date.now()); // force recompute of effectiveNow
+  }, []);
+
   const handleMute = useCallback((sourceId: string, mutedUntil: number) => {
     const src = (state.status === 'ready' || state.status === 'settings')
       ? state.sources.find(s => s.id === sourceId)
@@ -288,6 +301,8 @@ export function App() {
         onSettings={isReady ? handleSettings : undefined}
         inSettings={inSettings}
         onLogoClick={inSettings ? handleSettings : undefined}
+        paused={isReady ? paused : undefined}
+        onTogglePause={isReady ? handleTogglePause : undefined}
       >
         {state.status === 'connect' && (
           <ConnectScreen
@@ -314,7 +329,7 @@ export function App() {
               sources={state.sources}
               articles={state.articles}
               categories={state.categories}
-              now={now}
+              now={effectiveNow(now)}
               hidden={inSettings}
               mutedIds={mutedIds}
               onMute={handleMute}
