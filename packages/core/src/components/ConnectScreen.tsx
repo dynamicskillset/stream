@@ -59,24 +59,28 @@ export function ConnectScreen({ onConnect, initialError }: ConnectScreenProps) {
 
         <div class={styles.tabs} role="tablist">
           <button
+            id="tab-freshrss"
             class={`${styles.tab} ${backend === 'freshrss' ? styles.active : ''}`}
             role="tab"
             aria-selected={backend === 'freshrss'}
+            aria-controls="panel-connect"
             onClick={() => setBackend('freshrss')}
           >
             FreshRSS
           </button>
           <button
+            id="tab-feedbin"
             class={`${styles.tab} ${backend === 'feedbin' ? styles.active : ''}`}
             role="tab"
             aria-selected={backend === 'feedbin'}
+            aria-controls="panel-connect"
             onClick={() => setBackend('feedbin')}
           >
             Feedbin
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} noValidate>
+        <form id="panel-connect" role="tabpanel" aria-labelledby={`tab-${backend}`} onSubmit={handleSubmit} noValidate>
           {backend === 'freshrss' && (
             <div class={styles.field}>
               <label class={styles.label} for="freshrss-url">Server URL (root, not /api)</label>

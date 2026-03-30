@@ -14,7 +14,7 @@
   --text-muted:   #4C566A;   /* nord3 */
 
   /* Nord Frost + Aurora accents */
-  --accent-new:   #5E81AC;   /* nord10 — frost deep blue */
+  --accent-new:   #4C7199;   /* nord10 darkened — frost blue, WCAG AA on #ECEFF4 */
   --accent-saved: #D08770;   /* nord12 — aurora orange */
 
   /* Semantic tokens */

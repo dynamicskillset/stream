@@ -11,7 +11,6 @@
     "build": "tsc --emitDeclarationOnly --outDir dist/types"
   },
   "dependencies": {
-    "idb": "^8.0.0",
     "preact": "^10.22.0"
   }
 }

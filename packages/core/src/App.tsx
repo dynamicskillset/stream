@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'preact/hooks';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'preact/hooks';
 import { scoreRiver, HALF_LIVES } from './riverEngine.js';
 import { useRiver } from './hooks/useRiver.js';
 import { useTheme } from './hooks/useTheme.js';
@@ -119,6 +119,9 @@ export function App() {
   const [state, setState] = useState<AppState>(
     loadSavedConnection() ? { status: 'loading', adapter: null! } : { status: 'connect' },
   );
+  const stateRef = useRef(state);
+  useEffect(() => { stateRef.current = state; });
+
   const [refreshing, setRefreshing] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const [mutedIds, setMutedIds] = useState<Set<string>>(() => {
@@ -136,10 +139,16 @@ export function App() {
     applyDisplayPrefs(loadDisplayPrefs());
   }, []);
 
-  // Live score recalculation every 60s
+  // Live score recalculation every 60s — pauses when tab is hidden
   useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 60_000);
-    return () => clearInterval(id);
+    let id: ReturnType<typeof setInterval> | null = null;
+    const start = () => { if (!id) id = setInterval(() => setNow(Date.now()), 60_000); };
+    const stop  = () => { if (id) { clearInterval(id); id = null; } };
+    const onVis = () => { document.hidden ? stop() : (setNow(Date.now()), start()); };
+
+    start();
+    document.addEventListener('visibilitychange', onVis);
+    return () => { stop(); document.removeEventListener('visibilitychange', onVis); };
   }, []);
 
   const loadData = useCallback(async (adapter: StreamAdapter) => {
@@ -203,8 +212,9 @@ export function App() {
   }, []);
 
   const handleCategoryChange = useCallback(async (sourceId: string, categoryId: string) => {
-    if (state.status !== 'settings') return;
-    const adapter = state.adapter;
+    const s = stateRef.current;
+    if (s.status !== 'settings') return;
+    const adapter = s.adapter;
 
     // FreshRSS expects the full label stream ID; new names need the prefix added
     let backendCategoryId = categoryId;
@@ -224,17 +234,18 @@ export function App() {
     } catch {
       // Silent fail — source row will remain unchanged until next refresh
     }
-  }, [state]);
+  }, []);
 
   const handleRefresh = useCallback(async () => {
-    if (state.status !== 'ready' || refreshing) return;
+    const s = stateRef.current;
+    if (s.status !== 'ready') return;
     setRefreshing(true);
     try {
       const sources  = applySavedVelocity(
-        await state.adapter.fetchSources(), loadVelocityConfig()
+        await s.adapter.fetchSources(), loadVelocityConfig()
       );
-      const articles = await fetchAllArticles(state.adapter, sources);
-      const categories = await state.adapter.fetchCategories().catch(() => [] as Category[]);
+      const articles = await fetchAllArticles(s.adapter, sources);
+      const categories = await s.adapter.fetchCategories().catch(() => [] as Category[]);
       setState(prev =>
         prev.status === 'ready'
           ? { ...prev, sources, articles, categories }
@@ -245,7 +256,7 @@ export function App() {
     } finally {
       setRefreshing(false);
     }
-  }, [state, refreshing]);
+  }, []);
 
   const handleTogglePause = useCallback(() => {
     if (isPaused()) {
@@ -259,13 +270,14 @@ export function App() {
   }, []);
 
   const handleMute = useCallback((sourceId: string, mutedUntil: number) => {
-    const src = (state.status === 'ready' || state.status === 'settings')
-      ? state.sources.find(s => s.id === sourceId)
+    const s = stateRef.current;
+    const src = (s.status === 'ready' || s.status === 'settings')
+      ? s.sources.find(sr => sr.id === sourceId)
       : undefined;
     muteSource(sourceId, src?.title ?? sourceId, mutedUntil);
     setMutedIds(prev => new Set([...prev, sourceId]));
     setMutedEntries(getMutedSources());
-  }, [state]);
+  }, []);
 
   const handleTogglePin = useCallback((sourceId: string, pinned: boolean) => {
     setState(prev => {
@@ -281,15 +293,16 @@ export function App() {
   }, []);
 
   const handleDeleteSource = useCallback(async (sourceId: string) => {
-    if (state.status !== 'settings') return;
-    await state.adapter.removeSource(sourceId);
-    const rawSources = await state.adapter.fetchSources();
+    const s = stateRef.current;
+    if (s.status !== 'settings') return;
+    await s.adapter.removeSource(sourceId);
+    const rawSources = await s.adapter.fetchSources();
     const sources = applySavedVelocity(rawSources, loadVelocityConfig());
-    const categories = await state.adapter.fetchCategories().catch(() => [] as Category[]);
+    const categories = await s.adapter.fetchCategories().catch(() => [] as Category[]);
     setState(prev =>
       prev.status === 'settings' ? { ...prev, sources, categories } : prev
     );
-  }, [state]);
+  }, []);
 
   const handleUnmute = useCallback((sourceId: string) => {
     unmuteSource(sourceId);
@@ -555,26 +568,29 @@ function ReadyView({ adapter, sources, articles, categories, now, hidden, mutedI
 
   const river = useRiver(scoredItems, handleOpen, handleSave, handleRead, handleShare);
 
-  const savedIds = new Set(
+  const savedIds = useMemo(() => new Set(
     articles
       .filter(a => starredOverrides.has(a.id) ? starredOverrides.get(a.id) : a.isStarred)
       .map(a => a.id),
-  );
+  ), [articles, starredOverrides]);
 
   // Count unread articles per category for the filter bar
-  const unreadByCategory = new Map<string, number>();
-  for (const a of articles) {
-    if (a.isRead || mutedIds.has(a.sourceId)) continue;
-    const src = sourceMap.get(a.sourceId);
-    if (src?.categoryId) {
-      unreadByCategory.set(src.categoryId, (unreadByCategory.get(src.categoryId) ?? 0) + 1);
+  const unreadByCategory = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const a of articles) {
+      if (a.isRead || mutedIds.has(a.sourceId)) continue;
+      const src = sourceMap.get(a.sourceId);
+      if (src?.categoryId) {
+        counts.set(src.categoryId, (counts.get(src.categoryId) ?? 0) + 1);
+      }
     }
-  }
+    return counts;
+  }, [articles, mutedIds, sourceMap]);
 
   const emptyMessage = savedOnly ? 'No saved articles yet.' : 'The stream is quiet.';
 
   return (
-    <div style={hidden ? { display: 'none' } : undefined}>
+    <div hidden={hidden}>
       <FilterBar
         categories={categories}
         activeCategory={activeCategory}

@@ -96,7 +96,6 @@
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  outline: none;
   transition: border-color var(--transition);
 }
 
@@ -118,15 +117,13 @@
   font-size: 0.8125rem;
   color: var(--text);
   background: var(--bg);
-  /* Inline SVG magnifier — colour matches --text-muted (#4C566A) */
-  /* SVG icon using currentColor-equivalent neutral; will be overridden for ink theme */
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%234C566A' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");
+  /* Inline SVG magnifier — #808080 works against both light and dark backgrounds */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23808080' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: 0.625rem center;
   background-size: 14px 14px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  outline: none;
   margin-bottom: 1rem;
   transition: border-color var(--transition);
 }
@@ -242,7 +239,6 @@
   height: 3px;
   background: var(--border);
   border-radius: 2px;
-  outline: none;
   cursor: pointer;
   display: block;
   margin: 0;
@@ -419,6 +415,7 @@ details[open] > .sectionHeading::after {
 }
 
 .swatchBtn {
+  position: relative;
   width: 24px;
   height: 24px;
   border-radius: 50%;
@@ -427,6 +424,13 @@ details[open] > .sectionHeading::after {
   cursor: pointer;
   transition: border-color var(--transition), box-shadow var(--transition);
   padding: 0;
+}
+
+/* Expand touch target to 44px without changing visual size */
+.swatchBtn::after {
+  content: '';
+  position: absolute;
+  inset: -10px;
 }
 
 .swatchBtn:hover {
@@ -485,7 +489,6 @@ details[open] > .sectionHeading::after {
 
 .catSelect:focus {
   border-color: var(--accent-new);
-  outline: none;
 }
 
 .catSelect:hover {
@@ -503,7 +506,6 @@ details[open] > .sectionHeading::after {
   border-radius: 3px;
   flex-shrink: 0;
   max-width: 120px;
-  outline: none;
   transition: border-color var(--transition);
 }
 
@@ -678,11 +680,6 @@ details[open] > .sectionHeading::after {
 
 .suggestionDismiss:hover { color: var(--text); }
 
-/* Dark theme: search icon uses lighter stroke to match --text-muted (#D8DEE9) */
-[data-theme="ink"] .search {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23D8DEE9' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");
-}
-
 /* Export & import */
 .dataActions {
   display: flex;
@@ -693,6 +690,7 @@ details[open] > .sectionHeading::after {
 
 /* Pin toggle — diamond icon */
 .pinBtn {
+  position: relative;
   flex-shrink: 0;
   width: 24px;
   height: 24px;
@@ -709,6 +707,12 @@ details[open] > .sectionHeading::after {
   transition: color var(--transition), border-color var(--transition);
 }
 
+.pinBtn::after {
+  content: '';
+  position: absolute;
+  inset: -10px;
+}
+
 .pinBtn:hover {
   color: var(--accent-new);
   border-color: var(--accent-new);
@@ -720,6 +724,7 @@ details[open] > .sectionHeading::after {
 
 /* Delete feed button */
 .deleteBtn {
+  position: relative;
   flex-shrink: 0;
   width: 24px;
   height: 24px;
@@ -734,6 +739,12 @@ details[open] > .sectionHeading::after {
   border-radius: var(--radius);
   cursor: pointer;
   transition: color var(--transition), border-color var(--transition);
+}
+
+.deleteBtn::after {
+  content: '';
+  position: absolute;
+  inset: -10px;
 }
 
 .deleteBtn:hover {

@@ -24,6 +24,7 @@
   animation: slideUp 200ms ease forwards;
   overflow: hidden;
   white-space: nowrap;
+  max-width: calc(100vw - 2rem);
   z-index: 100;
 }
 

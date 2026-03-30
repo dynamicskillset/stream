@@ -10,3 +10,10 @@
   font-family: var(--font-serif);
   color: var(--text-muted);
 }
+
+@media (max-width: 380px) {
+  .river {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+}

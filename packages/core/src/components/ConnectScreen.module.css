@@ -87,6 +87,12 @@
   letter-spacing: 0.04em;
 }
 
+/* Required field indicator */
+.field:has(.input:required) > .label::after {
+  content: ' *';
+  color: var(--color-error);
+}
+
 .input {
   display: block;
   width: 100%;

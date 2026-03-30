@@ -102,6 +102,13 @@
   font-family: var(--font-sans);
   font-size: 0.75rem;
   color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.sourceName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .dot {

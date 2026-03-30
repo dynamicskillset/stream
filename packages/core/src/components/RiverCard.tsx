@@ -98,6 +98,7 @@ export function RiverCard({
               aria-hidden="true"
               width={16}
               height={16}
+              loading="lazy"
               onError={handleFaviconError}
             />
           ) : (
@@ -211,7 +212,7 @@ export function RiverCard({
           <img
             class={styles.thumbnail}
             src={article.imageUrl}
-            alt=""
+            alt={article.title}
             loading="lazy"
             onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
           />
