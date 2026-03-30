@@ -10,8 +10,8 @@ import type { MuteEntry } from '../mutedSources.js';
 import type { VelocitySuggestion } from '../velocitySuggestions.js';
 import {
   loadGeminiKey, saveGeminiKey, clearGeminiKey, testGeminiKey,
-  suggestCategories, suggestFeeds, dismissAISuggestion,
-  type AICategorySuggestion, type AIFeedSuggestion,
+  suggestCategories, suggestFeeds, suggestVelocityTiers, dismissAISuggestion,
+  type AICategorySuggestion, type AIFeedSuggestion, type AIVelocitySuggestion,
 } from '../geminiAI.js';
 import styles from './Settings.module.css';
 
@@ -98,8 +98,11 @@ export function Settings({ sources, categories, adapter, onUpdate, onCategoryCha
   const [aiKeyStatus, setAiKeyStatus]   = useState<AsyncStatus>({ type: 'idle' });
   const [aiCatSuggestions, setAiCatSuggestions] = useState<AICategorySuggestion[]>([]);
   const [aiFeedSuggestions, setAiFeedSuggestions] = useState<AIFeedSuggestion[]>([]);
+  const [aiVelocitySuggestions, setAiVelocitySuggestions] = useState<AIVelocitySuggestion[]>([]);
   const [aiCatStatus, setAiCatStatus]   = useState<AsyncStatus>({ type: 'idle' });
   const [aiFeedStatus, setAiFeedStatus] = useState<AsyncStatus>({ type: 'idle' });
+  const [aiVelocityStatus, setAiVelocityStatus] = useState<AsyncStatus>({ type: 'idle' });
+  const [undoVelocity, setUndoVelocity] = useState<{ label: string; prevTiers: Record<string, 1|2|3|4|5> } | null>(null);
 
   function toggleSection(key: keyof SectionState, open: boolean) {
     setSections(prev => {
@@ -191,8 +194,11 @@ export function Settings({ sources, categories, adapter, onUpdate, onCategoryCha
     setAiKeyStatus({ type: 'idle' });
     setAiCatSuggestions([]);
     setAiFeedSuggestions([]);
+    setAiVelocitySuggestions([]);
     setAiCatStatus({ type: 'idle' });
     setAiFeedStatus({ type: 'idle' });
+    setAiVelocityStatus({ type: 'idle' });
+    setUndoVelocity(null);
   };
 
   const handleAiCatSuggest = async () => {
@@ -254,6 +260,44 @@ export function Settings({ sources, categories, adapter, onUpdate, onCategoryCha
     setAiFeedSuggestions(prev => prev.filter(s => s.feedUrl !== feedUrl));
   };
 
+  const handleAiVelocitySuggest = async () => {
+    setAiVelocityStatus({ type: 'loading' });
+    setAiVelocitySuggestions([]);
+    setUndoVelocity(null);
+    try {
+      const results = await suggestVelocityTiers(sources, categories ?? []);
+      setAiVelocitySuggestions(results);
+      setAiVelocityStatus(results.length === 0
+        ? { type: 'ok', message: 'No velocity suggestions at this time.' }
+        : { type: 'idle' });
+    } catch (err) {
+      setAiVelocityStatus({ type: 'error', message: err instanceof Error ? err.message : 'Something went wrong.' });
+    }
+  };
+
+  const handleApplyAiVelocity = (s: AIVelocitySuggestion) => {
+    const catSrcs = sources.filter(src => src.categoryId === s.categoryId);
+    const prevTiers: Record<string, 1|2|3|4|5> = {};
+    for (const src of catSrcs) prevTiers[src.id] = src.velocityTier;
+    setUndoVelocity({ label: s.categoryTitle, prevTiers });
+    for (const src of catSrcs) onUpdate(src.id, s.suggestedTier);
+    dismissAISuggestion(`velocity:${s.categoryId}`);
+    setAiVelocitySuggestions(prev => prev.filter(x => x.categoryId !== s.categoryId));
+  };
+
+  const handleDismissAiVelocity = (categoryId: string) => {
+    dismissAISuggestion(`velocity:${categoryId}`);
+    setAiVelocitySuggestions(prev => prev.filter(x => x.categoryId !== categoryId));
+  };
+
+  const handleUndoVelocity = () => {
+    if (!undoVelocity) return;
+    for (const [sourceId, tier] of Object.entries(undoVelocity.prevTiers)) {
+      onUpdate(sourceId, tier);
+    }
+    setUndoVelocity(null);
+  };
+
   const filtered = query.trim()
     ? sources.filter(s => s.title.toLowerCase().includes(query.toLowerCase()))
     : sources;
@@ -266,7 +310,12 @@ export function Settings({ sources, categories, adapter, onUpdate, onCategoryCha
 
       {adapter && (
         <details class={styles.section} open={sections.addFeeds} onToggle={(e) => toggleSection('addFeeds', (e.currentTarget as HTMLDetailsElement).open)}>
-          <summary class={styles.sectionHeading}>Add feeds</summary>
+          <summary class={styles.sectionHeading}>
+            <span class={styles.sectionLabel}>
+              <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="6" cy="6" r="4.5"/><line x1="6" y1="3" x2="6" y2="9"/><line x1="3" y1="6" x2="9" y2="6"/></svg>
+              Add feeds
+            </span>
+          </summary>
 
           <form class={styles.addForm} onSubmit={handleAddFeed}>
             <input
@@ -317,7 +366,12 @@ export function Settings({ sources, categories, adapter, onUpdate, onCategoryCha
       )}
 
       <details class={styles.section} open={sections.display} onToggle={(e) => toggleSection('display', (e.currentTarget as HTMLDetailsElement).open)}>
-        <summary class={styles.sectionHeading}>Display</summary>
+        <summary class={styles.sectionHeading}>
+          <span class={styles.sectionLabel}>
+            <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><rect x="1" y="2" width="10" height="7" rx="1.5" stroke-linejoin="round"/><line x1="4" y1="11" x2="8" y2="11"/><line x1="6" y1="9" x2="6" y2="11"/></svg>
+            Display
+          </span>
+        </summary>
         <div class={styles.displayGrid}>
           <span class={styles.displayLabel}>Text size</span>
           <div class={styles.tiers} role="group" aria-label="Text size">
@@ -384,7 +438,12 @@ export function Settings({ sources, categories, adapter, onUpdate, onCategoryCha
       </details>
 
       <details class={styles.section} open={sections.ai} onToggle={(e) => toggleSection('ai', (e.currentTarget as HTMLDetailsElement).open)}>
-        <summary class={styles.sectionHeading}>AI assistant</summary>
+        <summary class={styles.sectionHeading}>
+          <span class={styles.sectionLabel}>
+            <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><path d="M6 1L7.5 4.5L11 6L7.5 7.5L6 11L4.5 7.5L1 6L4.5 4.5Z"/></svg>
+            AI assistant
+          </span>
+        </summary>
         <p class={styles.sub}>
           Stream can use Google's Gemini AI to suggest categories for your feeds and recommend new ones to follow. This is entirely optional.
         </p>
@@ -442,6 +501,13 @@ export function Settings({ sources, categories, adapter, onUpdate, onCategoryCha
                 disabled={aiFeedStatus.type === 'loading' || sources.length === 0}
               >
                 {aiFeedStatus.type === 'loading' ? 'Thinking…' : 'Suggest feeds'}
+              </button>
+              <button
+                class={styles.importBtn}
+                onClick={handleAiVelocitySuggest}
+                disabled={aiVelocityStatus.type === 'loading' || sources.length === 0}
+              >
+                {aiVelocityStatus.type === 'loading' ? 'Thinking…' : 'Suggest velocity'}
               </button>
             </div>
 
@@ -511,12 +577,57 @@ export function Settings({ sources, categories, adapter, onUpdate, onCategoryCha
                 ))}
               </div>
             )}
+
+            {aiVelocityStatus.type === 'ok'    && <p class={styles.sub}>{aiVelocityStatus.message}</p>}
+            {aiVelocityStatus.type === 'error' && <p class={styles.importErr}>{aiVelocityStatus.message}</p>}
+            {undoVelocity && (
+              <div class={styles.aiUndoBar}>
+                <span>Velocity updated for <strong>{undoVelocity.label}</strong></span>
+                <button class={styles.suggestionApply} onClick={handleUndoVelocity}>Undo</button>
+              </div>
+            )}
+            {aiVelocitySuggestions.length > 0 && (
+              <div class={styles.suggestions}>
+                <h3 class={styles.subHeading}>Suggested velocity</h3>
+                {aiVelocitySuggestions.map(s => (
+                  <div key={s.categoryId} class={styles.suggestionRow}>
+                    <div class={styles.suggestionMeta}>
+                      <span class={styles.suggestionTitle}>{s.categoryTitle}</span>
+                      <span class={styles.suggestionReason}>
+                        <span class={styles.aiVelocityTierBadge}>Tier {s.suggestedTier} — {TIERS[s.suggestedTier - 1].label}</span>
+                        {' '}{s.reason}
+                      </span>
+                    </div>
+                    <div class={styles.suggestionActions}>
+                      <button
+                        class={styles.suggestionApply}
+                        onClick={() => handleApplyAiVelocity(s)}
+                      >
+                        Apply
+                      </button>
+                      <button
+                        class={styles.suggestionDismiss}
+                        onClick={() => handleDismissAiVelocity(s.categoryId)}
+                        title="Dismiss for 30 days"
+                      >
+                        Dismiss
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </>
         )}
       </details>
 
       <details class={styles.section} open={sections.velocity} onToggle={(e) => toggleSection('velocity', (e.currentTarget as HTMLDetailsElement).open)}>
-        <summary class={styles.sectionHeading}>Velocity</summary>
+        <summary class={styles.sectionHeading}>
+          <span class={styles.sectionLabel}>
+            <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="6" cy="7" r="4.5"/><polyline points="6,4.5 6,7 8,9" stroke-linejoin="round"/><line x1="4.5" y1="1" x2="7.5" y2="1"/></svg>
+            Velocity
+          </span>
+        </summary>
         <p class={styles.sub}>
           Shorter half-lives push older articles down faster.
         </p>
@@ -599,8 +710,11 @@ export function Settings({ sources, categories, adapter, onUpdate, onCategoryCha
       {mutedEntries && mutedEntries.length > 0 && (
         <details class={styles.section} open={sections.mutedSources} onToggle={(e) => toggleSection('mutedSources', (e.currentTarget as HTMLDetailsElement).open)}>
           <summary class={styles.sectionHeading}>
-            Muted sources
-            <span class={styles.mutedBadge}>{mutedEntries.length}</span>
+            <span class={styles.sectionLabel}>
+              <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 4H3L6 1V11L3 8H1Z"/><line x1="8.5" y1="3.5" x2="11" y2="8.5"/><line x1="11" y1="3.5" x2="8.5" y2="8.5"/></svg>
+              Muted sources
+              <span class={styles.mutedBadge}>{mutedEntries.length}</span>
+            </span>
           </summary>
           <div class={styles.list} role="list">
             {mutedEntries.map(entry => {
@@ -624,7 +738,12 @@ export function Settings({ sources, categories, adapter, onUpdate, onCategoryCha
       )}
 
       <details class={styles.section} open={sections.exportImport} onToggle={(e) => toggleSection('exportImport', (e.currentTarget as HTMLDetailsElement).open)}>
-        <summary class={styles.sectionHeading}>Export &amp; import</summary>
+        <summary class={styles.sectionHeading}>
+          <span class={styles.sectionLabel}>
+            <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4,1 7,4 10,1"/><line x1="7" y1="4" x2="7" y2="9"/><polyline points="8,11 5,8 2,11"/><line x1="5" y1="8" x2="5" y2="3"/></svg>
+            Export &amp; import
+          </span>
+        </summary>
         <p class={styles.sub}>
           Export your velocity tiers, display settings, muted sources, and dismissed articles as a JSON file.
           Import on another device or browser to restore your configuration.

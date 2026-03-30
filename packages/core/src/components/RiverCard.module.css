@@ -118,7 +118,7 @@
   background: var(--border);
   color: var(--text-muted);
   font-family: var(--font-sans);
-  font-size: 9px;
+  font-size: 0.5625rem;
   font-weight: 700;
   line-height: 16px;
   text-align: center;

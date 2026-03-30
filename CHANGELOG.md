@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.7.1
+
+### Features
+
+- **AI velocity suggestions** — new "Suggest velocity" button in the AI assistant section. Gemini analyses your category names and feed titles and recommends velocity tiers for each category. Apply updates all feeds in that category at once; an inline undo bar lets you revert immediately.
+
+### Improvements
+
+- **Settings section icons** — each section heading now has a small icon to its left (feeds, display, AI, velocity, muted, export/import) for faster visual scanning.
+- **Filter bar overflow** — a fade gradient on the right edge of the category pill row now signals that more pills are off-screen when there are many categories.
+- **Font size floors** — section headings and subheadings now have minimum pixel sizes (`max()`) so they stay readable at the "small" text size setting.
+- **Favicon fallback** — replaced hardcoded `9px` with a relative unit so the fallback initials scale with the text size setting.
+
+### Bug fixes
+
+- Removed debug `console.debug` calls left in from AI diagnostics.
+
 ## 0.7.0
 
 ### Features

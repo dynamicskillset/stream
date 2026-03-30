@@ -21,6 +21,13 @@ export interface AIFeedSuggestion {
   reason: string;
 }
 
+export interface AIVelocitySuggestion {
+  categoryId: string;
+  categoryTitle: string;
+  suggestedTier: 1 | 2 | 3 | 4 | 5;
+  reason: string;
+}
+
 // ---------------------------------------------------------------------------
 // Key management
 // ---------------------------------------------------------------------------
@@ -117,15 +124,52 @@ export async function testGeminiKey(key: string): Promise<boolean> {
  * reading data is ever included. Returns an empty array if all feeds are
  * already categorised.
  */
+// ---------------------------------------------------------------------------
+// URL helpers
+// ---------------------------------------------------------------------------
+
+/** Normalise a feed URL for comparison: https, no www, no trailing slash. */
+function normaliseUrl(url: string): string {
+  try {
+    const u = new URL(url.toLowerCase());
+    u.protocol = 'https:';
+    u.hostname = u.hostname.replace(/^www\./, '');
+    return u.href.replace(/\/$/, '');
+  } catch {
+    return url.toLowerCase().trim().replace(/\/$/, '');
+  }
+}
+
+/** Extract the base hostname (no www) for same-site deduplication. */
+function baseHostname(url: string): string {
+  try {
+    return new URL(url.toLowerCase()).hostname.replace(/^www\./, '');
+  } catch {
+    return '';
+  }
+}
+
+// Category titles that are placeholder "no real category" values
+const UNCATEGORISED_TITLES = new Set(['uncategorized', 'uncategorised', 'unfiled', 'no category']);
+
 export async function suggestCategories(
   sources: Source[],
   categories: Category[],
 ): Promise<AICategorySuggestion[]> {
-  const uncategorised = sources.filter(s => !s.categoryId);
+  const categoryTitleMap = new Map(categories.map(c => [c.id, c.title.toLowerCase()]));
+
+  const uncategorised = sources.filter(s => {
+    if (!s.categoryId) return true;
+    const title = categoryTitleMap.get(s.categoryId) ?? '';
+    return UNCATEGORISED_TITLES.has(title);
+  });
   if (uncategorised.length === 0) return [];
 
-  const toClassify  = uncategorised.slice(0, MAX_SOURCES);
-  const existingNames = categories.map(c => c.title);
+  const toClassify = uncategorised.slice(0, MAX_SOURCES);
+  // Exclude placeholder category names from the list we offer Gemini as existing options
+  const existingNames = categories
+    .filter(c => !UNCATEGORISED_TITLES.has(c.title.toLowerCase()))
+    .map(c => c.title);
 
   const prompt =
 `You are a feed reader assistant helping to organise RSS feeds.
@@ -192,7 +236,8 @@ Return a JSON array only — no explanation, no code fences:
   const raw    = await callGemini(prompt);
   const parsed = JSON.parse(raw) as Array<{ feedUrl: string; title: string; reason: string }>;
 
-  const existingUrls = new Set(sources.map(s => s.feedUrl.toLowerCase()));
+  const existingNormUrls = new Set(sources.map(s => normaliseUrl(s.feedUrl)));
+  const existingHosts    = new Set(sources.map(s => baseHostname(s.feedUrl)).filter(Boolean));
 
   return parsed
     .filter(item =>
@@ -200,12 +245,91 @@ Return a JSON array only — no explanation, no code fences:
       typeof item.title   === 'string' &&
       typeof item.reason  === 'string' &&
       item.feedUrl.startsWith('http') &&
-      !existingUrls.has(item.feedUrl.toLowerCase()) &&
+      !existingNormUrls.has(normaliseUrl(item.feedUrl)) &&
+      !existingHosts.has(baseHostname(item.feedUrl)) &&
       notDismissed(item.feedUrl),
     )
     .map(item => ({
       feedUrl: item.feedUrl,
       title:   item.title,
       reason:  item.reason,
+    }));
+}
+
+// ---------------------------------------------------------------------------
+// Velocity tier suggestions
+// ---------------------------------------------------------------------------
+
+/**
+ * Asks Gemini to suggest velocity tiers for each category.
+ * Only category names and feed titles are sent — no article content.
+ */
+export async function suggestVelocityTiers(
+  sources: Source[],
+  categories: Category[],
+): Promise<AIVelocitySuggestion[]> {
+  const catSources = new Map<string, Source[]>();
+  for (const s of sources) {
+    if (!s.categoryId) continue;
+    if (!catSources.has(s.categoryId)) catSources.set(s.categoryId, []);
+    catSources.get(s.categoryId)!.push(s);
+  }
+
+  const catMap = new Map(categories.map(c => [c.id, c]));
+  const validCats = [...catSources.keys()]
+    .map(id => catMap.get(id))
+    .filter((c): c is Category => !!c && !UNCATEGORISED_TITLES.has(c.title.toLowerCase()));
+
+  if (validCats.length === 0) return [];
+
+  const catList = validCats.map(c => {
+    const srcs  = catSources.get(c.id) ?? [];
+    const sample = srcs.slice(0, 5).map(s => s.title).join(', ');
+    return `- id: "${c.id}" | name: "${c.title}" | feeds: ${srcs.length} (${sample}${srcs.length > 5 ? ', …' : ''})`;
+  }).join('\n');
+
+  const prompt =
+`You are a feed reader assistant. Suggest velocity tiers for RSS feed categories.
+
+Velocity tiers:
+- Tier 1 (3h half-life): Breaking news, live events
+- Tier 2 (12h half-life): Daily news, frequent updates
+- Tier 3 (24h half-life): Regular blogs, standard publications (default)
+- Tier 4 (72h half-life): Weekly digests, slower analysis
+- Tier 5 (168h half-life): Essays, long-form, reference, rarely updated
+
+Categories:
+${catList}
+
+For each category, suggest the most appropriate tier based on the name and feed titles. Each reason should be one concise sentence.
+
+Return a JSON array only — no explanation, no code fences:
+[{ "categoryId": "...", "categoryTitle": "...", "suggestedTier": 1, "reason": "..." }]`;
+
+  const raw    = await callGemini(prompt);
+  const parsed = JSON.parse(raw) as Array<{
+    categoryId: string;
+    categoryTitle: string;
+    suggestedTier: number;
+    reason: string;
+  }>;
+
+  const validTiers = new Set([1, 2, 3, 4, 5]);
+
+  return parsed
+    .filter(item =>
+      typeof item.categoryId    === 'string' &&
+      typeof item.categoryTitle === 'string' &&
+      typeof item.reason        === 'string' &&
+      validTiers.has(item.suggestedTier) &&
+      catMap.has(item.categoryId) &&
+      !UNCATEGORISED_TITLES.has((catMap.get(item.categoryId)?.title ?? '').toLowerCase()) &&
+      notDismissed(`velocity:${item.categoryId}`),
+    )
+    .map(item => ({
+      categoryId:    item.categoryId,
+      categoryTitle: item.categoryTitle,
+      suggestedTier: item.suggestedTier as 1 | 2 | 3 | 4 | 5,
+      reason:        item.reason,
     }));
 }

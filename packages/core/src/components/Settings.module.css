@@ -338,7 +338,7 @@
   align-items: center;
   padding: 1rem 0;
   font-family: var(--font-sans);
-  font-size: 0.625rem;
+  font-size: max(0.625rem, 10px);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -347,6 +347,13 @@
   list-style: none;
   user-select: none;
   transition: color var(--transition);
+}
+
+/* Icon + text grouped together so chevron stays at far right */
+.sectionLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
 }
 
 .sectionHeading::-webkit-details-marker {
@@ -450,7 +457,7 @@ details[open] > .sectionHeading::after {
 
 .subHeading {
   font-family: var(--font-sans);
-  font-size: 0.5625rem;
+  font-size: max(0.5625rem, 9px);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.12em;
@@ -716,6 +723,31 @@ details[open] > .sectionHeading::after {
   font-family: var(--font-sans);
   color: var(--text-muted);
   font-style: italic;
+}
+
+.aiVelocityTierBadge {
+  display: inline-block;
+  font-size: 0.625rem;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  color: var(--accent-saved);
+  border: 1px solid var(--accent-saved);
+  border-radius: 3px;
+  padding: 0.0625rem 0.3125rem;
+  vertical-align: baseline;
+}
+
+.aiUndoBar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.625rem;
+  margin-bottom: 0.75rem;
+  background: var(--surface);
+  border-radius: var(--radius);
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  color: var(--text-muted);
 }
 
 /* Export & import */

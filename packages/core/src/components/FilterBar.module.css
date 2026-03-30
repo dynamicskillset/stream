@@ -8,14 +8,31 @@
   border-bottom: 1px solid var(--border);
 }
 
+.catsWrap {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Fade gradient on right edge — signals more pills are off-screen */
+.catsWrap::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 2.5rem;
+  background: linear-gradient(to right, transparent, var(--bg));
+  pointer-events: none;
+}
+
 .cats {
   display: flex;
   align-items: center;
   gap: 4px;
-  flex: 1;
   overflow-x: auto;
   scrollbar-width: none;
-  min-width: 0;
+  padding-right: 1rem;
 }
 
 .cats::-webkit-scrollbar {

@@ -34,24 +34,26 @@ export function FilterBar({
   return (
     <div class={styles.bar}>
       {hasCats && (
-        <div class={styles.cats}>
-          <button
-            class={`${styles.pill} ${activeCategory === null ? styles.active : ''}`}
-            onClick={() => onCategory(null)}
-            aria-pressed={activeCategory === null}
-          >
-            All
-          </button>
-          {visibleCats.map(cat => (
+        <div class={styles.catsWrap}>
+          <div class={styles.cats}>
             <button
-              key={cat.id}
-              class={`${styles.pill} ${activeCategory === cat.id ? styles.active : ''}`}
-              onClick={() => onCategory(activeCategory === cat.id ? null : cat.id)}
-              aria-pressed={activeCategory === cat.id}
+              class={`${styles.pill} ${activeCategory === null ? styles.active : ''}`}
+              onClick={() => onCategory(null)}
+              aria-pressed={activeCategory === null}
             >
-              {cat.title}
+              All
             </button>
-          ))}
+            {visibleCats.map(cat => (
+              <button
+                key={cat.id}
+                class={`${styles.pill} ${activeCategory === cat.id ? styles.active : ''}`}
+                onClick={() => onCategory(activeCategory === cat.id ? null : cat.id)}
+                aria-pressed={activeCategory === cat.id}
+              >
+                {cat.title}
+              </button>
+            ))}
+          </div>
         </div>
       )}
       <div class={`${styles.statusPills} ${hasCats ? '' : styles.solo}`}>
