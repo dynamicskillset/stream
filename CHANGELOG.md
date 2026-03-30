@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.1
+
+### Bug fixes
+
+- **Deleted feed articles** — articles from a deleted feed are now removed from the stream immediately upon deletion, rather than persisting in memory for the rest of the session. (#23)
+
 ## 0.6.0
 
 ### Features

@@ -300,7 +300,9 @@ export function App() {
     const sources = applySavedVelocity(rawSources, loadVelocityConfig());
     const categories = await s.adapter.fetchCategories().catch(() => [] as Category[]);
     setState(prev =>
-      prev.status === 'settings' ? { ...prev, sources, categories } : prev
+      prev.status === 'settings'
+        ? { ...prev, sources, categories, articles: prev.articles.filter(a => a.sourceId !== sourceId) }
+        : prev
     );
   }, []);
 
