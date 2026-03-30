@@ -10,8 +10,6 @@
   font-weight: 600;
   color: var(--text);
   margin: 0 0 2rem;
-  padding-bottom: 0.75rem;
-  border-bottom: 2px solid var(--border);
   letter-spacing: -0.01em;
 }
 
@@ -36,6 +34,7 @@
 }
 
 .importBtn {
+  position: relative;
   padding: 0.25rem 0.625rem;
   font-family: var(--font-sans);
   font-size: 0.75rem;
@@ -45,6 +44,13 @@
   border-radius: var(--radius);
   cursor: pointer;
   transition: background var(--transition), color var(--transition);
+}
+
+/* Expand touch target to ~44px without affecting layout */
+.importBtn::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
 }
 
 .importBtn:hover:not(:disabled) {
@@ -66,13 +72,13 @@
 .importErr {
   font-family: var(--font-sans);
   font-size: 0.75rem;
-  color: var(--accent-saved);
+  color: var(--color-error);
 }
 
 .sub {
   font-family: var(--font-sans);
   font-size: 0.75rem;
-  font-style: italic;
+  font-style: normal;
   color: var(--text-muted);
   margin: 0 0 1.5rem;
 }
@@ -109,6 +115,28 @@
 }
 
 /* Search */
+.searchWrap {
+  position: relative;
+  margin-bottom: 1rem;
+}
+
+/* Magnifier icon using mask-image so it inherits --text-muted and adapts to theme */
+.searchWrap::before {
+  content: '';
+  position: absolute;
+  left: 0.625rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 14px;
+  height: 14px;
+  background-color: var(--text-muted);
+  opacity: 0.7;
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");
+  mask-size: contain;
+  mask-repeat: no-repeat;
+  pointer-events: none;
+}
+
 .search {
   display: block;
   width: 100%;
@@ -117,14 +145,8 @@
   font-size: 0.8125rem;
   color: var(--text);
   background: var(--bg);
-  /* Inline SVG magnifier — #808080 works against both light and dark backgrounds */
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23808080' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: 0.625rem center;
-  background-size: 14px 14px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  margin-bottom: 1rem;
   transition: border-color var(--transition);
 }
 
@@ -190,7 +212,7 @@
   color: var(--text-muted);
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 3px;
+  border-radius: var(--radius);
   cursor: pointer;
   transition: background var(--transition), color var(--transition), border-color var(--transition);
   white-space: nowrap;
@@ -338,10 +360,10 @@
   align-items: center;
   padding: 1rem 0;
   font-family: var(--font-sans);
-  font-size: max(0.625rem, 10px);
+  font-size: max(0.75rem, 12px);
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.08em;
   color: var(--text);
   cursor: pointer;
   list-style: none;
@@ -487,7 +509,7 @@ details[open] > .sectionHeading::after {
   color: var(--text-muted);
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 3px;
+  border-radius: var(--radius);
   cursor: pointer;
   flex-shrink: 0;
   max-width: 120px;
@@ -510,7 +532,7 @@ details[open] > .sectionHeading::after {
   color: var(--text);
   background: var(--bg);
   border: 1px solid var(--accent-new);
-  border-radius: 3px;
+  border-radius: var(--radius);
   flex-shrink: 0;
   max-width: 120px;
   transition: border-color var(--transition);
@@ -596,13 +618,14 @@ details[open] > .sectionHeading::after {
 }
 
 .unmuteBtn {
+  position: relative;
   font-family: var(--font-sans);
   font-size: 0.6875rem;
   font-weight: 500;
   color: var(--accent-new);
   padding: 0.125rem 0.5rem;
   border: 1px solid var(--accent-new);
-  border-radius: 3px;
+  border-radius: var(--radius);
   white-space: nowrap;
   transition: background var(--transition), color var(--transition);
 }
@@ -610,6 +633,12 @@ details[open] > .sectionHeading::after {
 .unmuteBtn:hover {
   background: var(--accent-new);
   color: var(--bg);
+}
+
+.unmuteBtn::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
 }
 
 /* Velocity suggestions */
@@ -661,31 +690,45 @@ details[open] > .sectionHeading::after {
 }
 
 .suggestionApply {
+  position: relative;
   font-family: var(--font-sans);
   font-size: 0.6875rem;
   font-weight: 500;
   color: var(--bg);
   background: var(--accent-new);
   padding: 0.125rem 0.5rem;
-  border-radius: 3px;
+  border-radius: var(--radius);
   white-space: nowrap;
   transition: opacity var(--transition);
 }
 
 .suggestionApply:hover { opacity: 0.8; }
 
+.suggestionApply::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+}
+
 .suggestionDismiss {
+  position: relative;
   font-family: var(--font-sans);
   font-size: 0.6875rem;
   color: var(--text-muted);
   padding: 0.125rem 0.375rem;
   border: 1px solid var(--border);
-  border-radius: 3px;
+  border-radius: var(--radius);
   white-space: nowrap;
   transition: color var(--transition);
 }
 
 .suggestionDismiss:hover { color: var(--text); }
+
+.suggestionDismiss::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+}
 
 /* AI assistant */
 .aiKeyRow {
@@ -712,9 +755,62 @@ details[open] > .sectionHeading::after {
   letter-spacing: 0.04em;
   color: var(--accent-new);
   border: 1px solid var(--accent-new);
-  border-radius: 3px;
+  border-radius: var(--radius);
   padding: 0.0625rem 0.3125rem;
   vertical-align: baseline;
+}
+
+/* Grouped category suggestions */
+.aiSuggestHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin: 1.5rem 0 0.625rem;
+  padding-bottom: 0.375rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.aiSuggestTitle {
+  font-family: var(--font-sans);
+  font-size: max(0.5625rem, 9px);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+}
+
+.aiCatGroup {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.aiCatGroupHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--surface);
+  flex-wrap: wrap;
+}
+
+.aiCatGroupCount {
+  font-family: var(--font-sans);
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+  flex: 1;
+}
+
+.aiCatGroup .suggestionRow {
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.aiCatGroup .suggestionRow:last-child {
+  border-bottom: none;
 }
 
 .aiNewBadge {
@@ -722,7 +818,42 @@ details[open] > .sectionHeading::after {
   font-weight: 500;
   font-family: var(--font-sans);
   color: var(--text-muted);
-  font-style: italic;
+  font-style: normal;
+}
+
+.aiLoadingNote {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.625rem;
+  padding: 0.625rem 0.75rem;
+  margin-bottom: 0.75rem;
+  background: var(--surface);
+  border-radius: var(--radius);
+  border-left: 2px solid var(--accent-new);
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.aiLoadingSpinner {
+  display: block;
+  width: 12px;
+  height: 12px;
+  border: 1.5px solid var(--border);
+  border-top-color: var(--accent-new);
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 1px;
+  animation: spin 0.8s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aiLoadingSpinner { animation: none; opacity: 0.5; }
 }
 
 .aiVelocityTierBadge {
@@ -732,7 +863,7 @@ details[open] > .sectionHeading::after {
   font-family: var(--font-sans);
   color: var(--accent-saved);
   border: 1px solid var(--accent-saved);
-  border-radius: 3px;
+  border-radius: var(--radius);
   padding: 0.0625rem 0.3125rem;
   vertical-align: baseline;
 }
@@ -748,6 +879,25 @@ details[open] > .sectionHeading::after {
   font-family: var(--font-sans);
   font-size: 0.75rem;
   color: var(--text-muted);
+  transition: opacity 2s ease;
+}
+
+.aiUndoBarFading {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.aiUndoDismiss {
+  margin-left: auto;
+  font-size: 1rem;
+  line-height: 1;
+  color: var(--text-muted);
+  padding: 0 0.25rem;
+  transition: color var(--transition);
+}
+
+.aiUndoDismiss:hover {
+  color: var(--text);
 }
 
 /* Export & import */
@@ -844,7 +994,7 @@ details[open] > .sectionHeading::after {
   color: var(--bg);
   background: var(--accent-saved);
   padding: 0.125rem 0.5rem;
-  border-radius: 3px;
+  border-radius: var(--radius);
   white-space: nowrap;
   transition: opacity var(--transition);
 }
@@ -858,7 +1008,7 @@ details[open] > .sectionHeading::after {
   color: var(--text-muted);
   padding: 0.125rem 0.375rem;
   border: 1px solid var(--border);
-  border-radius: 3px;
+  border-radius: var(--radius);
   white-space: nowrap;
   transition: color var(--transition);
 }

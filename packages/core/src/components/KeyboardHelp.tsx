@@ -21,6 +21,7 @@ export function KeyboardHelp({ onClose }: KeyboardHelpProps) {
   const backdropRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    const trigger = document.activeElement as HTMLElement | null;
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape' || e.key === '?') {
         e.preventDefault();
@@ -41,7 +42,10 @@ export function KeyboardHelp({ onClose }: KeyboardHelpProps) {
     window.addEventListener('keydown', handler);
     const closeBtn = backdropRef.current?.querySelector<HTMLElement>('button');
     closeBtn?.focus();
-    return () => window.removeEventListener('keydown', handler);
+    return () => {
+      window.removeEventListener('keydown', handler);
+      trigger?.focus();
+    };
   }, [onClose]);
 
   return (

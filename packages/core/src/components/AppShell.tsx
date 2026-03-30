@@ -60,12 +60,11 @@ export function AppShell({
         <div class={styles.inner}>
           <div class={styles.brand}>
             <button
-              class={styles.logoBtn}
+              class={`${styles.logoBtn} ${onLogoClick ? '' : styles.logoBtnStatic}`}
               onClick={onLogoClick ?? undefined}
               aria-label={onLogoClick ? 'Back to stream' : undefined}
               title={onLogoClick ? 'Back to stream' : undefined}
               tabIndex={onLogoClick ? 0 : -1}
-              style={onLogoClick ? undefined : { cursor: 'default' }}
             >
               <StreamLogo class={styles.logo} />
               <span class={styles.wordmark}>Stream</span>

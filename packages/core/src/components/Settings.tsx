@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'preact/hooks';
+import { useState, useRef, useEffect, useMemo } from 'preact/hooks';
 import type { Category, Source, StreamAdapter } from '../types.js';
 import { HALF_LIVES } from '../riverEngine.js';
 import {
@@ -11,6 +11,7 @@ import type { VelocitySuggestion } from '../velocitySuggestions.js';
 import {
   loadGeminiKey, saveGeminiKey, clearGeminiKey, testGeminiKey,
   suggestCategories, suggestFeeds, suggestVelocityTiers, dismissAISuggestion,
+  countUncategorised,
   type AICategorySuggestion, type AIFeedSuggestion, type AIVelocitySuggestion,
 } from '../geminiAI.js';
 import styles from './Settings.module.css';
@@ -30,7 +31,9 @@ interface SettingsProps {
   categories?: Category[];
   adapter?: StreamAdapter;
   onUpdate: (sourceId: string, tier: 1|2|3|4|5) => void;
-  onCategoryChange: (sourceId: string, categoryId: string) => void;
+  onBulkVelocityUpdate?: (changes: Array<{ sourceId: string; tier: 1|2|3|4|5 }>) => void;
+  onCategoryChange: (sourceId: string, categoryId: string) => Promise<void> | void;
+  onBulkCategoryChange?: (changes: Array<{ sourceId: string; categoryName: string }>) => Promise<void>;
   onImported?: () => void;
   mutedEntries?: MuteEntry[];
   onUnmute?: (sourceId: string) => void;
@@ -81,7 +84,7 @@ function handleExport() {
   URL.revokeObjectURL(url);
 }
 
-export function Settings({ sources, categories, adapter, onUpdate, onCategoryChange, onImported, mutedEntries, onUnmute, suggestions, onApplySuggestion, onDismissSuggestion, onDeleteSource, onExpiryChange, onTogglePin }: SettingsProps) {
+export function Settings({ sources, categories, adapter, onUpdate, onBulkVelocityUpdate, onCategoryChange, onBulkCategoryChange, onImported, mutedEntries, onUnmute, suggestions, onApplySuggestion, onDismissSuggestion, onDeleteSource, onExpiryChange, onTogglePin }: SettingsProps) {
   const [query, setQuery]             = useState('');
   const [importStatus, setImportStatus] = useState<AsyncStatus>({ type: 'idle' });
   const [dataImportStatus, setDataImportStatus] = useState<AsyncStatus>({ type: 'idle' });
@@ -103,6 +106,8 @@ export function Settings({ sources, categories, adapter, onUpdate, onCategoryCha
   const [aiFeedStatus, setAiFeedStatus] = useState<AsyncStatus>({ type: 'idle' });
   const [aiVelocityStatus, setAiVelocityStatus] = useState<AsyncStatus>({ type: 'idle' });
   const [undoVelocity, setUndoVelocity] = useState<{ label: string; prevTiers: Record<string, 1|2|3|4|5> } | null>(null);
+  const [undoFading, setUndoFading] = useState(false);
+  const [aiCatApplyProgress, setAiCatApplyProgress] = useState<{ done: number; total: number } | null>(null);
 
   function toggleSection(key: keyof SectionState, open: boolean) {
     setSections(prev => {
@@ -115,6 +120,14 @@ export function Settings({ sources, categories, adapter, onUpdate, onCategoryCha
   useEffect(() => {
     applyDisplayPrefs(display);
   }, [display]);
+
+  // Auto-dismiss undo bar: fade at 6s, remove at 8s
+  useEffect(() => {
+    if (!undoVelocity) { setUndoFading(false); return; }
+    const fadeTimer    = setTimeout(() => setUndoFading(true),  6_000);
+    const dismissTimer = setTimeout(() => setUndoVelocity(null), 8_000);
+    return () => { clearTimeout(fadeTimer); clearTimeout(dismissTimer); };
+  }, [undoVelocity]);
 
   const handleFileChange = async (e: Event) => {
     const file = (e.target as HTMLInputElement).files?.[0];
@@ -278,9 +291,16 @@ export function Settings({ sources, categories, adapter, onUpdate, onCategoryCha
   const handleApplyAiVelocity = (s: AIVelocitySuggestion) => {
     const catSrcs = sources.filter(src => src.categoryId === s.categoryId);
     const prevTiers: Record<string, 1|2|3|4|5> = {};
-    for (const src of catSrcs) prevTiers[src.id] = src.velocityTier;
+    const changes = catSrcs.map(src => {
+      prevTiers[src.id] = src.velocityTier;
+      return { sourceId: src.id, tier: s.suggestedTier };
+    });
     setUndoVelocity({ label: s.categoryTitle, prevTiers });
-    for (const src of catSrcs) onUpdate(src.id, s.suggestedTier);
+    if (onBulkVelocityUpdate) {
+      onBulkVelocityUpdate(changes);
+    } else {
+      for (const c of changes) onUpdate(c.sourceId, c.tier);
+    }
     dismissAISuggestion(`velocity:${s.categoryId}`);
     setAiVelocitySuggestions(prev => prev.filter(x => x.categoryId !== s.categoryId));
   };
@@ -288,6 +308,26 @@ export function Settings({ sources, categories, adapter, onUpdate, onCategoryCha
   const handleDismissAiVelocity = (categoryId: string) => {
     dismissAISuggestion(`velocity:${categoryId}`);
     setAiVelocitySuggestions(prev => prev.filter(x => x.categoryId !== categoryId));
+  };
+
+  const handleApplyAllAiVelocity = () => {
+    const all = [...aiVelocitySuggestions];
+    const prevTiers: Record<string, 1|2|3|4|5> = {};
+    const changes: Array<{ sourceId: string; tier: 1|2|3|4|5 }> = [];
+    for (const s of all) {
+      for (const src of sources.filter(x => x.categoryId === s.categoryId)) {
+        prevTiers[src.id] = src.velocityTier;
+        changes.push({ sourceId: src.id, tier: s.suggestedTier });
+      }
+      dismissAISuggestion(`velocity:${s.categoryId}`);
+    }
+    setUndoVelocity({ label: `${all.length} categories`, prevTiers });
+    if (onBulkVelocityUpdate) {
+      onBulkVelocityUpdate(changes);
+    } else {
+      for (const c of changes) onUpdate(c.sourceId, c.tier);
+    }
+    setAiVelocitySuggestions([]);
   };
 
   const handleUndoVelocity = () => {
@@ -298,6 +338,52 @@ export function Settings({ sources, categories, adapter, onUpdate, onCategoryCha
     setUndoVelocity(null);
   };
 
+  const uncategorisedCount = useMemo(
+    () => countUncategorised(sources, categories ?? []),
+    [sources, categories],
+  );
+
+  // Group category suggestions by suggested category name for grouped rendering
+  const aiCatGroups = useMemo(() => {
+    const groups = new Map<string, AICategorySuggestion[]>();
+    for (const s of aiCatSuggestions) {
+      if (!groups.has(s.suggestedCategoryName)) groups.set(s.suggestedCategoryName, []);
+      groups.get(s.suggestedCategoryName)!.push(s);
+    }
+    return [...groups.entries()];
+  }, [aiCatSuggestions]);
+
+  const handleApplyAllAiCat = async () => {
+    const all = [...aiCatSuggestions];
+    setAiCatSuggestions([]);
+    setAiCatApplyProgress({ done: 0, total: all.length });
+    if (onBulkCategoryChange) {
+      await onBulkCategoryChange(all.map(s => ({ sourceId: s.sourceId, categoryName: s.suggestedCategoryName })));
+      for (const s of all) dismissAISuggestion(s.sourceId);
+    } else {
+      for (let i = 0; i < all.length; i++) {
+        await onCategoryChange(all[i].sourceId, all[i].suggestedCategoryName);
+        dismissAISuggestion(all[i].sourceId);
+        setAiCatApplyProgress({ done: i + 1, total: all.length });
+      }
+    }
+    setAiCatApplyProgress(null);
+  };
+
+  const handleApplyAiCatGroup = async (catName: string) => {
+    const group = aiCatSuggestions.filter(s => s.suggestedCategoryName === catName);
+    setAiCatSuggestions(prev => prev.filter(s => s.suggestedCategoryName !== catName));
+    if (onBulkCategoryChange) {
+      await onBulkCategoryChange(group.map(s => ({ sourceId: s.sourceId, categoryName: s.suggestedCategoryName })));
+      for (const s of group) dismissAISuggestion(s.sourceId);
+    } else {
+      for (const s of group) {
+        await onCategoryChange(s.sourceId, s.suggestedCategoryName);
+        dismissAISuggestion(s.sourceId);
+      }
+    }
+  };
+
   const filtered = query.trim()
     ? sources.filter(s => s.title.toLowerCase().includes(query.toLowerCase()))
     : sources;
@@ -306,69 +392,12 @@ export function Settings({ sources, categories, adapter, onUpdate, onCategoryCha
 
   return (
     <div class={styles.wrap}>
-      <h2 class={styles.heading}>Settings</h2>
-
-      {adapter && (
-        <details class={styles.section} open={sections.addFeeds} onToggle={(e) => toggleSection('addFeeds', (e.currentTarget as HTMLDetailsElement).open)}>
-          <summary class={styles.sectionHeading}>
-            <span class={styles.sectionLabel}>
-              <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="6" cy="6" r="4.5"/><line x1="6" y1="3" x2="6" y2="9"/><line x1="3" y1="6" x2="9" y2="6"/></svg>
-              Add feeds
-            </span>
-          </summary>
-
-          <form class={styles.addForm} onSubmit={handleAddFeed}>
-            <input
-              class={styles.addInput}
-              type="url"
-              placeholder="https://example.com/feed.xml"
-              value={feedUrl}
-              onInput={e => setFeedUrl((e.target as HTMLInputElement).value)}
-              aria-label="Feed URL"
-              spellcheck={false}
-              autocomplete="off"
-            />
-            <button
-              class={styles.importBtn}
-              type="submit"
-              disabled={addStatus.type === 'loading' || !feedUrl.trim()}
-            >
-              {addStatus.type === 'loading' ? 'Adding…' : 'Add feed'}
-            </button>
-            {addStatus.type === 'ok'    && <span class={styles.importOk}>{addStatus.message}</span>}
-            {addStatus.type === 'error' && <span class={styles.importErr}>{addStatus.message}</span>}
-          </form>
-
-          <div class={styles.importWrap}>
-            <input
-              ref={fileRef}
-              type="file"
-              accept=".opml,.xml"
-              class={styles.fileInput}
-              aria-label="Import OPML file"
-              onChange={handleFileChange}
-            />
-            <button
-              class={styles.importBtn}
-              onClick={() => fileRef.current?.click()}
-              disabled={importStatus.type === 'loading'}
-            >
-              {importStatus.type === 'loading' ? 'Importing…' : 'Import OPML'}
-            </button>
-            {importStatus.type === 'ok' && (
-              <span class={styles.importOk}>{importStatus.message}</span>
-            )}
-            {importStatus.type === 'error' && (
-              <span class={styles.importErr}>{importStatus.message}</span>
-            )}
-          </div>
-        </details>
-      )}
+      <h1 class={styles.heading}>Settings</h1>
 
       <details class={styles.section} open={sections.display} onToggle={(e) => toggleSection('display', (e.currentTarget as HTMLDetailsElement).open)}>
         <summary class={styles.sectionHeading}>
           <span class={styles.sectionLabel}>
-            <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><rect x="1" y="2" width="10" height="7" rx="1.5" stroke-linejoin="round"/><line x1="4" y1="11" x2="8" y2="11"/><line x1="6" y1="9" x2="6" y2="11"/></svg>
+            <svg width="13" height="13" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><rect x="1" y="2" width="10" height="7" rx="1.5" stroke-linejoin="round"/><line x1="4" y1="11" x2="8" y2="11"/><line x1="6" y1="9" x2="6" y2="11"/></svg>
             Display
           </span>
         </summary>
@@ -437,10 +466,67 @@ export function Settings({ sources, categories, adapter, onUpdate, onCategoryCha
         </div>
       </details>
 
+      {adapter && (
+        <details class={styles.section} open={sections.addFeeds} onToggle={(e) => toggleSection('addFeeds', (e.currentTarget as HTMLDetailsElement).open)}>
+          <summary class={styles.sectionHeading}>
+            <span class={styles.sectionLabel}>
+              <svg width="13" height="13" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="6" cy="6" r="4.5"/><line x1="6" y1="3" x2="6" y2="9"/><line x1="3" y1="6" x2="9" y2="6"/></svg>
+              Add feeds
+            </span>
+          </summary>
+
+          <form class={styles.addForm} onSubmit={handleAddFeed}>
+            <input
+              class={styles.addInput}
+              type="url"
+              placeholder="https://example.com/feed.xml"
+              value={feedUrl}
+              onInput={e => setFeedUrl((e.target as HTMLInputElement).value)}
+              aria-label="Feed URL"
+              spellcheck={false}
+              autocomplete="off"
+            />
+            <button
+              class={styles.importBtn}
+              type="submit"
+              disabled={addStatus.type === 'loading' || !feedUrl.trim()}
+            >
+              {addStatus.type === 'loading' ? 'Adding…' : 'Add feed'}
+            </button>
+            {addStatus.type === 'ok'    && <span class={styles.importOk}>{addStatus.message}</span>}
+            {addStatus.type === 'error' && <span class={styles.importErr}>{addStatus.message}</span>}
+          </form>
+
+          <div class={styles.importWrap}>
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".opml,.xml"
+              class={styles.fileInput}
+              aria-label="Import OPML file"
+              onChange={handleFileChange}
+            />
+            <button
+              class={styles.importBtn}
+              onClick={() => fileRef.current?.click()}
+              disabled={importStatus.type === 'loading'}
+            >
+              {importStatus.type === 'loading' ? 'Importing…' : 'Import OPML'}
+            </button>
+            {importStatus.type === 'ok' && (
+              <span class={styles.importOk}>{importStatus.message}</span>
+            )}
+            {importStatus.type === 'error' && (
+              <span class={styles.importErr}>{importStatus.message}</span>
+            )}
+          </div>
+        </details>
+      )}
+
       <details class={styles.section} open={sections.ai} onToggle={(e) => toggleSection('ai', (e.currentTarget as HTMLDetailsElement).open)}>
         <summary class={styles.sectionHeading}>
           <span class={styles.sectionLabel}>
-            <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><path d="M6 1L7.5 4.5L11 6L7.5 7.5L6 11L4.5 7.5L1 6L4.5 4.5Z"/></svg>
+            <svg width="13" height="13" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><path d="M6 1L7.5 4.5L11 6L7.5 7.5L6 11L4.5 7.5L1 6L4.5 4.5Z"/></svg>
             AI assistant
           </span>
         </summary>
@@ -487,60 +573,114 @@ export function Settings({ sources, categories, adapter, onUpdate, onCategoryCha
               <button class={styles.suggestionDismiss} onClick={handleAiKeyRemove}>Remove</button>
             </div>
 
+            {uncategorisedCount > 0
+              ? <p class={styles.sub}>{uncategorisedCount} feed{uncategorisedCount !== 1 ? 's are' : ' is'} uncategorised.</p>
+              : <p class={styles.sub}>All feeds are categorised.</p>
+            }
+
             <div class={styles.aiActions}>
-              <button
-                class={styles.importBtn}
-                onClick={handleAiCatSuggest}
-                disabled={aiCatStatus.type === 'loading' || sources.length === 0}
-              >
-                {aiCatStatus.type === 'loading' ? 'Thinking…' : 'Suggest categories'}
-              </button>
-              <button
-                class={styles.importBtn}
-                onClick={handleAiFeedSuggest}
-                disabled={aiFeedStatus.type === 'loading' || sources.length === 0}
-              >
-                {aiFeedStatus.type === 'loading' ? 'Thinking…' : 'Suggest feeds'}
-              </button>
-              <button
-                class={styles.importBtn}
-                onClick={handleAiVelocitySuggest}
-                disabled={aiVelocityStatus.type === 'loading' || sources.length === 0}
-              >
-                {aiVelocityStatus.type === 'loading' ? 'Thinking…' : 'Suggest velocity'}
-              </button>
+              {(() => {
+                const anyLoading = aiCatStatus.type === 'loading' || aiFeedStatus.type === 'loading' || aiVelocityStatus.type === 'loading';
+                return (
+                  <>
+                    <button
+                      class={styles.importBtn}
+                      onClick={handleAiCatSuggest}
+                      disabled={anyLoading || uncategorisedCount === 0}
+                    >
+                      {aiCatStatus.type === 'loading' ? 'Analysing…' : 'Suggest categories'}
+                    </button>
+                    <button
+                      class={styles.importBtn}
+                      onClick={handleAiVelocitySuggest}
+                      disabled={anyLoading || sources.length === 0}
+                    >
+                      {aiVelocityStatus.type === 'loading' ? 'Thinking…' : 'Suggest velocity'}
+                    </button>
+                    <button
+                      class={styles.importBtn}
+                      onClick={handleAiFeedSuggest}
+                      disabled={anyLoading || sources.length === 0}
+                    >
+                      {aiFeedStatus.type === 'loading' ? 'Thinking…' : 'Suggest feeds'}
+                    </button>
+                  </>
+                );
+              })()}
             </div>
 
-            {aiCatStatus.type === 'ok'    && <p class={styles.sub}>{aiCatStatus.message}</p>}
-            {aiCatStatus.type === 'error' && <p class={styles.importErr}>{aiCatStatus.message}</p>}
-            {aiCatSuggestions.length > 0 && (
+            {aiCatStatus.type === 'loading' && (
+              <div class={styles.aiLoadingNote}>
+                <span class={styles.aiLoadingSpinner} aria-hidden="true" />
+                <span>
+                  Sending {uncategorisedCount} feed titles and URLs to Gemini for categorisation.
+                  Only titles and URLs are shared — no article content.
+                  With a large collection this can take 30–60 seconds.
+                </span>
+              </div>
+            )}
+
+            {aiCatStatus.type === 'error' && (
+              <div class={styles.aiLoadingNote} style="border-color: var(--accent-new); margin-top: 0.5rem;">
+                <span>{aiCatStatus.message}</span>
+                <button class={styles.suggestionApply} onClick={handleAiCatSuggest} style="margin-left: auto; flex-shrink: 0;">Try again</button>
+              </div>
+            )}
+            {aiCatApplyProgress && (
+              <div class={styles.aiLoadingNote}>
+                <span class={styles.aiLoadingSpinner} aria-hidden="true" />
+                <span>Applying categories… {aiCatApplyProgress.done} of {aiCatApplyProgress.total}</span>
+              </div>
+            )}
+            {aiCatGroups.length > 0 && (
               <div class={styles.suggestions}>
-                <h3 class={styles.subHeading}>Suggested categories</h3>
-                {aiCatSuggestions.map(s => (
-                  <div key={s.sourceId} class={styles.suggestionRow}>
-                    <div class={styles.suggestionMeta}>
-                      <span class={styles.suggestionTitle}>{s.sourceTitle}</span>
-                      <span class={styles.suggestionReason}>
-                        <span class={styles.aiCategoryTag}>{s.suggestedCategoryName}</span>
-                        {s.isNewCategory && <span class={styles.aiNewBadge}> new</span>}
-                        {' — '}{s.reason}
-                      </span>
-                    </div>
-                    <div class={styles.suggestionActions}>
+                <div class={styles.aiSuggestHeader}>
+                  <span class={styles.aiSuggestTitle}>Suggested categories</span>
+                  <button
+                    class={styles.suggestionApply}
+                    onClick={handleApplyAllAiCat}
+                    disabled={!!aiCatApplyProgress}
+                  >
+                    Apply all {aiCatSuggestions.length}
+                  </button>
+                </div>
+                {aiCatGroups.map(([catName, group]) => (
+                  <div key={catName} class={styles.aiCatGroup}>
+                    <div class={styles.aiCatGroupHeader}>
+                      <span class={styles.aiCategoryTag}>{catName}</span>
+                      {group[0].isNewCategory && <span class={styles.aiNewBadge}>new</span>}
+                      <span class={styles.aiCatGroupCount}>{group.length} feed{group.length !== 1 ? 's' : ''}</span>
                       <button
                         class={styles.suggestionApply}
-                        onClick={() => handleApplyAiCat(s.sourceId, s.suggestedCategoryName)}
+                        onClick={() => handleApplyAiCatGroup(catName)}
+                        disabled={!!aiCatApplyProgress}
                       >
-                        Apply
-                      </button>
-                      <button
-                        class={styles.suggestionDismiss}
-                        onClick={() => handleDismissAiCat(s.sourceId)}
-                        title="Dismiss for 30 days"
-                      >
-                        Dismiss
+                        Apply {group.length}
                       </button>
                     </div>
+                    {group.map(s => (
+                      <div key={s.sourceId} class={styles.suggestionRow}>
+                        <div class={styles.suggestionMeta}>
+                          <span class={styles.suggestionTitle}>{s.sourceTitle}</span>
+                          <span class={styles.suggestionReason}>{s.reason}</span>
+                        </div>
+                        <div class={styles.suggestionActions}>
+                          <button
+                            class={styles.suggestionApply}
+                            onClick={() => handleApplyAiCat(s.sourceId, catName)}
+                          >
+                            Apply
+                          </button>
+                          <button
+                            class={styles.suggestionDismiss}
+                            onClick={() => handleDismissAiCat(s.sourceId)}
+                            title="Dismiss for 30 days"
+                          >
+                            Dismiss
+                          </button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 ))}
               </div>
@@ -581,14 +721,20 @@ export function Settings({ sources, categories, adapter, onUpdate, onCategoryCha
             {aiVelocityStatus.type === 'ok'    && <p class={styles.sub}>{aiVelocityStatus.message}</p>}
             {aiVelocityStatus.type === 'error' && <p class={styles.importErr}>{aiVelocityStatus.message}</p>}
             {undoVelocity && (
-              <div class={styles.aiUndoBar}>
+              <div class={`${styles.aiUndoBar} ${undoFading ? styles.aiUndoBarFading : ''}`}>
                 <span>Velocity updated for <strong>{undoVelocity.label}</strong></span>
                 <button class={styles.suggestionApply} onClick={handleUndoVelocity}>Undo</button>
+                <button class={styles.aiUndoDismiss} onClick={() => setUndoVelocity(null)} aria-label="Dismiss">×</button>
               </div>
             )}
             {aiVelocitySuggestions.length > 0 && (
               <div class={styles.suggestions}>
-                <h3 class={styles.subHeading}>Suggested velocity</h3>
+                <div class={styles.aiSuggestHeader}>
+                  <span class={styles.aiSuggestTitle}>Suggested velocity</span>
+                  <button class={styles.suggestionApply} onClick={handleApplyAllAiVelocity}>
+                    Apply all {aiVelocitySuggestions.length}
+                  </button>
+                </div>
                 {aiVelocitySuggestions.map(s => (
                   <div key={s.categoryId} class={styles.suggestionRow}>
                     <div class={styles.suggestionMeta}>
@@ -624,7 +770,7 @@ export function Settings({ sources, categories, adapter, onUpdate, onCategoryCha
       <details class={styles.section} open={sections.velocity} onToggle={(e) => toggleSection('velocity', (e.currentTarget as HTMLDetailsElement).open)}>
         <summary class={styles.sectionHeading}>
           <span class={styles.sectionLabel}>
-            <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="6" cy="7" r="4.5"/><polyline points="6,4.5 6,7 8,9" stroke-linejoin="round"/><line x1="4.5" y1="1" x2="7.5" y2="1"/></svg>
+            <svg width="13" height="13" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="6" cy="7" r="4.5"/><polyline points="6,4.5 6,7 8,9" stroke-linejoin="round"/><line x1="4.5" y1="1" x2="7.5" y2="1"/></svg>
             Velocity
           </span>
         </summary>
@@ -679,14 +825,16 @@ export function Settings({ sources, categories, adapter, onUpdate, onCategoryCha
         </>
       )}
 
-      <input
-        class={styles.search}
-        type="search"
-        placeholder="Filter sources…"
-        value={query}
-        onInput={e => setQuery((e.target as HTMLInputElement).value)}
-        aria-label="Filter sources"
-      />
+      <div class={styles.searchWrap}>
+        <input
+          class={styles.search}
+          type="search"
+          placeholder="Filter sources…"
+          value={query}
+          onInput={e => setQuery((e.target as HTMLInputElement).value)}
+          aria-label="Filter sources"
+        />
+      </div>
 
       {sorted.length === 0 ? (
         <p class={styles.empty}>No sources match.</p>
@@ -711,7 +859,7 @@ export function Settings({ sources, categories, adapter, onUpdate, onCategoryCha
         <details class={styles.section} open={sections.mutedSources} onToggle={(e) => toggleSection('mutedSources', (e.currentTarget as HTMLDetailsElement).open)}>
           <summary class={styles.sectionHeading}>
             <span class={styles.sectionLabel}>
-              <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 4H3L6 1V11L3 8H1Z"/><line x1="8.5" y1="3.5" x2="11" y2="8.5"/><line x1="11" y1="3.5" x2="8.5" y2="8.5"/></svg>
+              <svg width="13" height="13" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 4H3L6 1V11L3 8H1Z"/><line x1="8.5" y1="3.5" x2="11" y2="8.5"/><line x1="11" y1="3.5" x2="8.5" y2="8.5"/></svg>
               Muted sources
               <span class={styles.mutedBadge}>{mutedEntries.length}</span>
             </span>
@@ -740,7 +888,7 @@ export function Settings({ sources, categories, adapter, onUpdate, onCategoryCha
       <details class={styles.section} open={sections.exportImport} onToggle={(e) => toggleSection('exportImport', (e.currentTarget as HTMLDetailsElement).open)}>
         <summary class={styles.sectionHeading}>
           <span class={styles.sectionLabel}>
-            <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4,1 7,4 10,1"/><line x1="7" y1="4" x2="7" y2="9"/><polyline points="8,11 5,8 2,11"/><line x1="5" y1="8" x2="5" y2="3"/></svg>
+            <svg width="13" height="13" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="3.5" y1="9.5" x2="3.5" y2="2"/><polyline points="1,4.5 3.5,2 6,4.5"/><line x1="8.5" y1="2.5" x2="8.5" y2="10"/><polyline points="6,7.5 8.5,10 11,7.5"/></svg>
             Export &amp; import
           </span>
         </summary>

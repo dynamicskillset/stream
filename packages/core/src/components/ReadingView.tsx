@@ -48,8 +48,9 @@ export function ReadingView({ article, source, isSaved, onSave, onClose }: Readi
     return Math.max(1, Math.ceil(words / 200));
   })();
 
-  // Close on Escape + focus trap
+  // Close on Escape + focus trap; return focus to the triggering element on close
   useEffect(() => {
+    const trigger = document.activeElement as HTMLElement | null;
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') { e.preventDefault(); onClose(); return; }
       if (e.key === 'Tab' && overlayRef.current) {
@@ -67,7 +68,10 @@ export function ReadingView({ article, source, isSaved, onSave, onClose }: Readi
     // Auto-focus first focusable element
     const first = overlayRef.current?.querySelector<HTMLElement>('button, [href]');
     first?.focus();
-    return () => window.removeEventListener('keydown', handler);
+    return () => {
+      window.removeEventListener('keydown', handler);
+      trigger?.focus();
+    };
   }, [onClose]);
 
   // Restore saved scroll position, then save on scroll (debounced)
@@ -123,7 +127,7 @@ export function ReadingView({ article, source, isSaved, onSave, onClose }: Readi
             >
               {copied ? '✓ Copied' : (
                 <>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" aria-hidden="true" style={{ verticalAlign: 'middle', marginRight: '0.25rem' }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" aria-hidden="true" class={styles.shareBtnIcon}>
                     <circle cx="18" cy="5" r="3"/>
                     <circle cx="6" cy="12" r="3"/>
                     <circle cx="18" cy="19" r="3"/>

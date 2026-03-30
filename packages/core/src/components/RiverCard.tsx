@@ -202,7 +202,7 @@ export function RiverCard({
           </button>
 
           {preview && (
-            <button class={styles.preview} onClick={() => onOpen(article.id)} aria-label={`Read: ${article.title}`}>
+            <button class={styles.preview} onClick={() => onOpen(article.id)} aria-hidden="true" tabIndex={-1}>
               {preview}
             </button>
           )}

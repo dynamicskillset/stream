@@ -58,6 +58,14 @@ function loadDismissed(): DismissedMap {
   return {};
 }
 
+export function countUncategorised(sources: Source[], categories: Category[]): number {
+  const categoryTitleMap = new Map(categories.map(c => [c.id, c.title.toLowerCase()]));
+  return sources.filter(s => {
+    if (!s.categoryId) return true;
+    return UNCATEGORISED_TITLES.has(categoryTitleMap.get(s.categoryId) ?? '');
+  }).length;
+}
+
 export function dismissAISuggestion(id: string): void {
   const map = loadDismissed();
   map[id] = Date.now() + DISMISS_DURATION_MS;
@@ -78,20 +86,47 @@ async function callGemini(prompt: string): Promise<string> {
   const key = loadGeminiKey();
   if (!key) throw new Error('No Gemini API key configured.');
 
-  const res = await fetch(`${GEMINI_BASE}?key=${encodeURIComponent(key)}`, {
-    method:  'POST',
-    headers: { 'content-type': 'application/json' },
-    body:    JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
-  });
+  const controller = new AbortController();
+  const timeout    = setTimeout(() => controller.abort(), 120_000); // 2 min hard limit
+
+  let res: Response;
+  try {
+    res = await fetch(`${GEMINI_BASE}?key=${encodeURIComponent(key)}`, {
+      method:  'POST',
+      headers: { 'content-type': 'application/json' },
+      signal:  controller.signal,
+      body:    JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { thinkingConfig: { thinkingBudget: 0 } },
+      }),
+    });
+  } catch (err) {
+    if (err instanceof Error && err.name === 'AbortError') {
+      throw new Error('Gemini request timed out after 2 minutes. Try again or reduce the number of feeds.');
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeout);
+  }
 
   if (!res.ok) {
     const body = await res.text().catch(() => '');
-    throw new Error(`Gemini error ${res.status}${body ? `: ${body}` : ''}`);
+    // Parse out useful error message from Google's JSON error response
+    let detail = body;
+    try {
+      const parsed = JSON.parse(body) as { error?: { message?: string } };
+      if (parsed?.error?.message) detail = parsed.error.message;
+    } catch { /* use raw body */ }
+    throw new Error(`Gemini error ${res.status}: ${detail || 'unknown error'}`);
   }
 
   const data = await res.json();
-  const text: string = (data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '').trim();
-  if (!text) throw new Error('Empty response from Gemini.');
+  // When thinking mode is active, parts[0] may be the thought (thought: true).
+  // Find the first non-thought text part to get the actual response.
+  const parts: Array<{ text?: string; thought?: boolean }> = data?.candidates?.[0]?.content?.parts ?? [];
+  const textPart = parts.find(p => !p.thought && typeof p.text === 'string');
+  const text = (textPart?.text ?? '').trim();
+  if (!text) throw new Error('Empty response from Gemini. The model may be overloaded — try again in a moment.');
 
   // Strip markdown code fences if present
   return text.replace(/^```json?\s*/i, '').replace(/\s*```$/i, '').trim();
@@ -183,8 +218,13 @@ For each feed, suggest which category it belongs in. Use existing categories whe
 Return a JSON array only — no explanation, no code fences:
 [{ "sourceId": "...", "categoryName": "...", "reason": "..." }]`;
 
-  const raw    = await callGemini(prompt);
-  const parsed = JSON.parse(raw) as Array<{ sourceId: string; categoryName: string; reason: string }>;
+  const raw = await callGemini(prompt);
+  let parsed: Array<{ sourceId: string; categoryName: string; reason: string }>;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    throw new Error(`Gemini returned an unexpected response. Try again — if it keeps failing, the model may be busy.`);
+  }
 
   const existingSet = new Set(existingNames.map(n => n.toLowerCase()));
   const sourceMap   = new Map(sources.map(s => [s.id, s]));
@@ -233,8 +273,13 @@ Suggest 5–8 other RSS/Atom feeds the user might enjoy. Use real, active feed U
 Return a JSON array only — no explanation, no code fences:
 [{ "feedUrl": "https://...", "title": "...", "reason": "..." }]`;
 
-  const raw    = await callGemini(prompt);
-  const parsed = JSON.parse(raw) as Array<{ feedUrl: string; title: string; reason: string }>;
+  const raw = await callGemini(prompt);
+  let parsed: Array<{ feedUrl: string; title: string; reason: string }>;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    throw new Error(`Gemini returned an unexpected response. Try again — if it keeps failing, the model may be busy.`);
+  }
 
   const existingNormUrls = new Set(sources.map(s => normaliseUrl(s.feedUrl)));
   const existingHosts    = new Set(sources.map(s => baseHostname(s.feedUrl)).filter(Boolean));
@@ -306,13 +351,13 @@ For each category, suggest the most appropriate tier based on the name and feed 
 Return a JSON array only — no explanation, no code fences:
 [{ "categoryId": "...", "categoryTitle": "...", "suggestedTier": 1, "reason": "..." }]`;
 
-  const raw    = await callGemini(prompt);
-  const parsed = JSON.parse(raw) as Array<{
-    categoryId: string;
-    categoryTitle: string;
-    suggestedTier: number;
-    reason: string;
-  }>;
+  const raw = await callGemini(prompt);
+  let parsed: Array<{ categoryId: string; categoryTitle: string; suggestedTier: number; reason: string }>;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    throw new Error(`Gemini returned an unexpected response. Try again — if it keeps failing, the model may be busy.`);
+  }
 
   const validTiers = new Set([1, 2, 3, 4, 5]);
 

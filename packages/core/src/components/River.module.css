@@ -4,6 +4,19 @@
   padding: 1rem 1rem 5rem; /* bottom padding keeps last card above toast */
 }
 
+/* Visually hidden but available to screen readers */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .empty {
   text-align: center;
   padding: 4rem 1rem;

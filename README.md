@@ -37,29 +37,55 @@ The quickest way to run Stream is to deploy it to [Netlify](https://netlify.com)
 
 ---
 
-## Your credentials
-
-Your Feedbin or FreshRSS username and password are stored only in your own browser. Stream does not have a central server, and nothing is sent to anyone but your RSS service.
-
-When you deploy to Netlify, API requests pass through a small function on your own Netlify account before reaching Feedbin or FreshRSS. That function sees your credentials on every request, so anyone with access to your Netlify account could find them in the function logs. For a personal deployment this is not a concern — it is your own account. It is worth bearing in mind if you ever share a single deployment with other people.
-
----
-
 ## How it works
 
 Each feed is assigned a velocity tier. This controls how quickly articles fade:
 
 | Tier | Label | Half-life | Good for |
-|------|-------|-----------|---------|
+|------|-------|-----------|----------|
 | 1 | Breaking | 3h | BBC News, Reuters |
 | 2 | News | 12h | Ars Technica, The Verge |
 | 3 | Article | 24h | Most blogs (default) |
 | 4 | Essay | 72h | Aeon, Craig Mod |
 | 5 | Evergreen | 7 days | Tutorials, references |
 
-You can set velocity per feed or per category from the settings screen. Fresh articles are fully visible; older ones dim gradually until they disappear. The river shows what is here right now.
+Set velocity per feed or per category in Settings. Fresh articles are fully visible; older ones dim gradually until they disappear.
 
-Keyboard shortcuts: `j`/`k` to move, `d` to dismiss, `s` to save, `z` to undo, `?` for help.
+---
+
+## AI assistant (optional)
+
+Stream can use Google's Gemini AI to help organise your feeds. It is entirely optional — everything works without it.
+
+- **Suggest categories** — sends your uncategorised feed titles and URLs to Gemini and suggests which category each belongs in, grouping similar feeds together. Apply suggestions one at a time, by group, or all at once.
+- **Suggest velocity** — recommends velocity tiers for each category based on the category name and its feeds. Apply and undo with one click.
+- **Suggest feeds** — recommends new RSS feeds you might enjoy based on what you already subscribe to.
+
+To enable: open Settings → AI assistant, get a free API key from [Google AI Studio](https://aistudio.google.com/apikey), and paste it in. Your key is stored in your browser only and never sent to Stream's servers. Only feed titles and URLs are shared with Google — not your articles, reading habits, or any other data.
+
+---
+
+## Keyboard shortcuts
+
+| Key | Action |
+|-----|--------|
+| `j` / `k` | Navigate down / up |
+| `Enter` / `o` | Open article |
+| `b` | Open original in new tab |
+| `c` | Copy link / share |
+| `d` | Dismiss article |
+| `s` | Save / star |
+| `z` | Undo dismiss |
+| `Esc` | Close reading view |
+| `?` | Show / hide shortcuts |
+
+---
+
+## Your credentials
+
+Your Feedbin or FreshRSS username and password are stored only in your own browser. Stream does not have a central server, and nothing is sent to anyone but your RSS service.
+
+When you deploy to Netlify, API requests pass through a small function on your own Netlify account before reaching Feedbin or FreshRSS. That function sees your credentials on every request, so anyone with access to your Netlify account could find them in the function logs. For a personal deployment this is not a concern — it is your own account. Worth bearing in mind if you ever share a single deployment with other people.
 
 ---
 

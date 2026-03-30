@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.8.0
+
+### Improvements
+
+- **Category navigation arrows** — when you have many categories, left and right arrows now appear at the edges of the filter bar so you can scroll through them without any hidden swiping.
+- **Instant velocity "Apply all"** — applying all AI velocity suggestions at once is now immediate, regardless of how many feeds are affected. Previously it could take several seconds with large collections.
+- **AI errors now explained** — if a Gemini request fails, you now see a clear message explaining why, with a "Try again" button. Requests also have a two-minute timeout so the app never gets stuck in a permanent loading state.
+- **Scroll resets when leaving Settings** — going back to the stream from a long Settings page now takes you to the top, rather than leaving you mid-scroll.
+- **Cleaner Settings header** — removed a stray double border that appeared above the first section.
+
+### Accessibility
+
+A thorough accessibility and quality sweep:
+
+- Error messages are now shown in red rather than the orange used for saved items — the colours now mean what they should.
+- Screen readers no longer announce article preview text as a separate action from the title (they open the same thing).
+- The search input icon now adapts to light and dark themes instead of being a fixed grey.
+- Tap targets on small buttons — category arrows, action buttons in Settings, "Apply" and "Dismiss" on suggestions, the back button in the reading view, and the keyboard shortcut close button — have all been expanded to at least 44px.
+- Native browser controls (range sliders, selects, scrollbars) now follow Stream's light/dark theme rather than defaulting to the OS setting.
+- Pressing Escape to close the reading view or keyboard shortcuts panel now returns focus to the element you were on, rather than losing your place on the page.
+- The Settings page now has a proper top-level heading for screen readers; the main stream view also has a visually-hidden heading.
+- The category filter strip is now correctly identified as navigation for screen readers and browser tools.
+
 ## 0.7.1
 
 ### Features

@@ -55,6 +55,7 @@
 }
 
 .closeBtn {
+  position: relative;
   font-size: 0.75rem;
   color: var(--text-muted);
   padding: 0.25rem;
@@ -65,6 +66,12 @@
 .closeBtn:hover {
   color: var(--text);
   background: var(--border);
+}
+
+.closeBtn::after {
+  content: '';
+  position: absolute;
+  inset: -10px;
 }
 
 .list {

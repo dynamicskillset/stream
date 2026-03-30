@@ -180,7 +180,10 @@ export function App() {
   const handleSettings = useCallback(() => {
     setState(prev => {
       if (prev.status === 'ready') return { ...prev, status: 'settings' };
-      if (prev.status === 'settings') return { ...prev, status: 'ready' };
+      if (prev.status === 'settings') {
+        window.scrollTo({ top: 0, behavior: 'instant' });
+        return { ...prev, status: 'ready' };
+      }
       return prev;
     });
   }, []);
@@ -211,6 +214,22 @@ export function App() {
     });
   }, []);
 
+  const handleBulkVelocityUpdate = useCallback((changes: Array<{ sourceId: string; tier: 1|2|3|4|5 }>) => {
+    setState(prev => {
+      if (prev.status !== 'settings' && prev.status !== 'ready') return prev;
+      const cfg = loadVelocityConfig();
+      const tierMap = new Map(changes.map(c => [c.sourceId, c.tier]));
+      for (const c of changes) {
+        cfg[c.sourceId] = { tier: c.tier, isVoice: cfg[c.sourceId]?.isVoice ?? false };
+      }
+      saveVelocityConfig(cfg);
+      const sources = prev.sources.map(s =>
+        tierMap.has(s.id) ? { ...s, velocityTier: tierMap.get(s.id)! } : s
+      );
+      return { ...prev, sources };
+    });
+  }, []);
+
   const handleCategoryChange = useCallback(async (sourceId: string, categoryId: string) => {
     const s = stateRef.current;
     if (s.status !== 'settings') return;
@@ -234,6 +253,30 @@ export function App() {
     } catch {
       // Silent fail — source row will remain unchanged until next refresh
     }
+  }, []);
+
+  /** Bulk version: fires all writes concurrently, then re-fetches once. */
+  const handleBulkCategoryChange = useCallback(async (
+    changes: Array<{ sourceId: string; categoryName: string }>,
+  ) => {
+    const s = stateRef.current;
+    if (s.status !== 'settings') return;
+    const adapter = s.adapter;
+
+    await Promise.all(changes.map(({ sourceId, categoryName }) => {
+      let backendId = categoryName;
+      if (adapter.id === 'freshrss' && !categoryName.startsWith('user/-/label/')) {
+        backendId = `user/-/label/${categoryName}`;
+      }
+      return adapter.setSourceCategory(sourceId, backendId).catch(() => {});
+    }));
+
+    const rawSources = await adapter.fetchSources();
+    const sources    = applySavedVelocity(rawSources, loadVelocityConfig());
+    const categories = await adapter.fetchCategories().catch(() => [] as Category[]);
+    setState(prev =>
+      prev.status === 'settings' ? { ...prev, sources, categories } : prev
+    );
   }, []);
 
   const handleRefresh = useCallback(async () => {
@@ -385,7 +428,9 @@ export function App() {
                 categories={state.categories}
                 adapter={state.adapter}
                 onUpdate={handleVelocityUpdate}
+                onBulkVelocityUpdate={handleBulkVelocityUpdate}
                 onCategoryChange={handleCategoryChange}
+                onBulkCategoryChange={handleBulkCategoryChange}
                 onImported={handleImported}
                 mutedEntries={mutedEntries}
                 onUnmute={handleUnmute}

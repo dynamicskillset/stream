@@ -22,6 +22,13 @@
   padding: 1rem 1rem 4rem;
 }
 
+@media (max-width: 380px) {
+  .inner {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+}
+
 /* Toolbar */
 .toolbar {
   display: flex;
@@ -37,6 +44,7 @@
 }
 
 .backBtn {
+  position: relative;
   font-family: var(--font-sans);
   font-size: 0.8125rem;
   font-weight: 500;
@@ -46,6 +54,12 @@
 }
 
 .backBtn:hover { opacity: 0.75; }
+
+.backBtn::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+}
 
 .toolbarRight {
   display: flex;
@@ -62,6 +76,11 @@
 
 .shareBtn:hover  { color: var(--text); }
 .shareBtnActive  { color: var(--accent-new); }
+
+.shareBtnIcon {
+  vertical-align: middle;
+  margin-right: 0.25rem;
+}
 
 .saveBtn {
   font-size: 1rem;
@@ -146,7 +165,7 @@
 .body a:hover { opacity: 0.8; }
 .body img     { max-width: 100%; height: auto; border-radius: var(--radius); margin: 1em 0; }
 .body pre     { background: var(--surface); padding: 0.75rem 1rem; border-radius: var(--radius); overflow-x: auto; font-size: 0.875rem; }
-.body code    { font-size: 0.875em; background: var(--surface); padding: 0.1em 0.3em; border-radius: 3px; }
+.body code    { font-size: 0.875em; background: var(--surface); padding: 0.1em 0.3em; border-radius: var(--radius); }
 .body pre code { background: none; padding: 0; }
 .body blockquote {
   border-left: 3px solid var(--accent-new);

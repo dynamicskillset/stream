@@ -4,6 +4,8 @@
 */
 
 :root {
+  color-scheme: light;
+
   /* Nord Snow Storm backgrounds */
   --bg:           #ECEFF4;   /* nord6 */
   --surface:      #E5E9F0;   /* nord5 */
@@ -32,6 +34,8 @@
 }
 
 [data-theme="ink"] {
+  color-scheme: dark;
+
   /* Nord Polar Night backgrounds */
   --bg:           #2E3440;   /* nord0 */
   --surface:      #3B4252;   /* nord1 */

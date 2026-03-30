@@ -14,17 +14,63 @@
   min-width: 0;
 }
 
-/* Fade gradient on right edge — signals more pills are off-screen */
+/* Fade gradients — shown via .fadeLeft / .fadeRight classes */
+.catsWrap::before,
 .catsWrap::after {
   content: '';
   position: absolute;
-  right: 0;
   top: 0;
   bottom: 0;
-  width: 2.5rem;
-  background: linear-gradient(to right, transparent, var(--bg));
+  width: 2rem;
   pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 1;
 }
+.catsWrap::before {
+  left: 0;
+  background: linear-gradient(to left, transparent, var(--bg));
+}
+.catsWrap::after {
+  right: 0;
+  background: linear-gradient(to right, transparent, var(--bg));
+}
+.catsWrap.fadeLeft::before  { opacity: 1; }
+.catsWrap.fadeRight::after  { opacity: 1; }
+
+/* Scroll arrow buttons */
+.scrollArrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  font-size: 1rem;
+  line-height: 1;
+  color: var(--text-muted);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: color var(--transition), border-color var(--transition);
+}
+.scrollArrow:hover {
+  color: var(--text);
+  border-color: var(--accent-new);
+}
+/* Expand touch target to 44px without affecting layout */
+.scrollArrow::after {
+  content: '';
+  position: absolute;
+  inset: -10px;
+}
+.scrollArrowLeft  { left: 0; }
+.scrollArrowRight { right: 0; }
 
 .cats {
   display: flex;
