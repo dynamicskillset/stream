@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.9.1
+
+### Bug fixes
+
+- **Docker arm64 support** — the 0.9.0 image was built for `amd64` only; images are now published for both `linux/amd64` and `linux/arm64`.
+
+## 0.9.0
+
+### Infrastructure
+
+- **Docker deployment** — Stream can now be deployed as a Docker container, served by nginx. Images are automatically built and published to GitHub Container Registry on each release. Thanks to [@benrhughes](https://github.com/benrhughes) for contributing Docker support.
+
 ## 0.8.0
 
 ### Improvements

@@ -164,6 +164,12 @@ Tech: Preact · Vite · CSS Modules
 
 ---
 
+## Acknowledgements
+
+Docker support contributed by [@benrhughes](https://github.com/benrhughes).
+
+---
+
 ## Licence
 
 [AGPL-3.0](LICENSE.md)
