@@ -119,6 +119,32 @@ add_header Access-Control-Allow-Methods "GET, POST";
 
 Feedbin users need no extra configuration beyond what is described above.
 
+### Docker
+
+Docker images are automatically built and published to GitHub Container Registry when a GitHub Release is published.
+
+Pull and run the latest image:
+
+```bash
+# Pull from GitHub Container Registry
+docker pull ghcr.io/dynamicskillset/stream:latest
+
+# Run the container
+docker run -p 8080:8080 ghcr.io/dynamicskillset/stream:latest
+```
+
+Or build locally:
+
+```bash
+# Build the Docker image
+docker build -f docker/Dockerfile -t stream .
+
+# Run the container
+docker run -p 8080:8080 stream
+```
+
+The container serves Stream on port 8080. Access it at `http://localhost:8080`.
+
 </details>
 
 <details>
