@@ -1,7 +1,8 @@
 # Multi-stage build for Stream web application
 
-# Build stage
-FROM node:22-alpine AS builder
+# Build stage — pinned to amd64 since JS compilation is platform-agnostic
+# and QEMU emulation of arm64 is unreliable for Node.js
+FROM --platform=linux/amd64 node:22-alpine AS builder
 
 # Set working directory
 WORKDIR /app
