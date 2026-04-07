@@ -121,7 +121,7 @@ Feedbin users need no extra configuration beyond what is described above.
 
 ### Docker
 
-Docker images are automatically built and published to GitHub Container Registry on every push to main and on releases.
+Docker images are automatically built and published to GitHub Container Registry when a GitHub Release is published.
 
 Pull and run the latest image:
 
@@ -130,7 +130,7 @@ Pull and run the latest image:
 docker pull ghcr.io/dynamicskillset/stream:latest
 
 # Run the container
-docker run -p 8080:80 ghcr.io/dynamicskillset/stream:latest
+docker run -p 8080:8080 ghcr.io/dynamicskillset/stream:latest
 ```
 
 Or build locally:
@@ -140,10 +140,10 @@ Or build locally:
 docker build -f docker/Dockerfile -t stream .
 
 # Run the container
-docker run -p 8080:80 stream
+docker run -p 8080:8080 stream
 ```
 
-The container serves Stream on port 80. Access it at `http://localhost:8080`.
+The container serves Stream on port 8080. Access it at `http://localhost:8080`.
 
 </details>
 
