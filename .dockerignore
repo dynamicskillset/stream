@@ -29,5 +29,4 @@ build
 .env.production.local
 packages/*/node_modules
 packages/*/dist
-packages/extension
 netlify
