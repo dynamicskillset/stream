@@ -121,7 +121,7 @@ Feedbin users need no extra configuration beyond what is described above.
 
 ### Docker
 
-Docker support was contributed by [@benrhughes](https://github.com/benrhughes). Docker images are automatically built and published to GitHub Container Registry when a GitHub Release is published.
+Docker images are automatically built and published to GitHub Container Registry when a GitHub Release is published.
 
 Pull and run the latest image:
 
