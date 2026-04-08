@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.10.0
+
+### Performance
+
+- **No more flash of wrong theme on load** — theme, accent colour, text size, and fade intensity are now applied synchronously via an inline script before the first paint, eliminating the brief flash of the default light theme that dark mode users saw on startup.
+- **Adapter code splitting** — the Feedbin and FreshRSS adapters are now loaded lazily. Returning users only fetch the adapter they actually use; the main bundle is ~10% smaller as a result.
+- **Skeleton loading screen** — the "Loading your stream…" text is replaced with animated placeholder cards that match the article layout, making startup feel significantly faster.
+
+### Accessibility
+
+- Filter bar category and status pill buttons now have a 44 px touch target (up from 36 px), meeting the WCAG 2.5.5 recommended minimum.
+- The loading state is now announced to screen readers via `role="status"`.
+
+### UI
+
+- All emoji and Unicode symbol characters used as icons (☽, ☀, ▶, ⏸, ↻, ≋, ⊘, ♥, ♡, ×, ✕, ‹, ›, ←, ↗) have been replaced with purpose-built inline SVG icons. Rendering is now consistent across all platforms and operating systems.
+
 ## 0.9.1
 
 ### Bug fixes
