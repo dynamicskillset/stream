@@ -1,6 +1,4 @@
 import { useState } from 'preact/hooks';
-import { FreshRSSAdapter } from '../adapters/freshrss.js';
-import { FeedbinAdapter } from '../adapters/feedbin.js';
 import type { StreamAdapter, AdapterConfig } from '../types.js';
 import styles from './ConnectScreen.module.css';
 
@@ -27,9 +25,11 @@ export function ConnectScreen({ onConnect, initialError }: ConnectScreenProps) {
       let config: AdapterConfig;
 
       if (backend === 'feedbin') {
+        const { FeedbinAdapter } = await import('../adapters/feedbin.js');
         adapter = new FeedbinAdapter();
         config  = { username: user, password: pass };
       } else {
+        const { FreshRSSAdapter } = await import('../adapters/freshrss.js');
         adapter = new FreshRSSAdapter();
         config  = { baseUrl: url.replace(/\/$/, ''), username: user, password: pass };
       }

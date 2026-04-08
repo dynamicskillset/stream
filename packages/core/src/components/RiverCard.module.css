@@ -8,6 +8,9 @@
 }
 
 .copiedBanner {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
   font-family: var(--font-sans);
   font-size: 0.75rem;
   font-weight: 600;

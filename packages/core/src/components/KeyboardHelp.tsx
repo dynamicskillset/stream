@@ -1,6 +1,15 @@
 import { useEffect, useRef } from 'preact/hooks';
 import styles from './KeyboardHelp.module.css';
 
+function IconClose() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
+      <line x1="18" y1="6" x2="6" y2="18"/>
+      <line x1="6" y1="6" x2="18" y2="18"/>
+    </svg>
+  );
+}
+
 const SHORTCUTS = [
   { key: 'j / k',       desc: 'Navigate up / down' },
   { key: 'Enter / o',   desc: 'Open article' },
@@ -60,7 +69,7 @@ export function KeyboardHelp({ onClose }: KeyboardHelpProps) {
       <div class={styles.panel} onClick={e => e.stopPropagation()}>
         <div class={styles.header}>
           <h2 class={styles.title}>Keyboard shortcuts</h2>
-          <button class={styles.closeBtn} onClick={onClose} aria-label="Close">✕</button>
+          <button class={styles.closeBtn} onClick={onClose} aria-label="Close"><IconClose /></button>
         </div>
         <dl class={styles.list}>
           {SHORTCUTS.map(({ key, desc }) => (

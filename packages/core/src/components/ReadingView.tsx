@@ -4,6 +4,49 @@ import { useRelativeTime } from '../hooks/useRelativeTime.js';
 import { getProgress, saveProgress, purgeProgress } from '../readingProgress.js';
 import styles from './ReadingView.module.css';
 
+function IconArrowLeft() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <line x1="19" y1="12" x2="5" y2="12"/>
+      <polyline points="12 19 5 12 12 5"/>
+    </svg>
+  );
+}
+
+function IconCheck() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <polyline points="20 6 9 17 4 12"/>
+    </svg>
+  );
+}
+
+function IconHeartFilled() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+    </svg>
+  );
+}
+
+function IconHeartOutline() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+    </svg>
+  );
+}
+
+function IconExternalLink() {
+  return (
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+      <polyline points="15 3 21 3 21 9"/>
+      <line x1="10" y1="14" x2="21" y2="3"/>
+    </svg>
+  );
+}
+
 function sanitiseHtml(html: string): string {
   const doc = new DOMParser().parseFromString(html, 'text/html');
   doc.querySelectorAll('script, style, iframe, object, embed, form').forEach(el => el.remove());
@@ -116,7 +159,7 @@ export function ReadingView({ article, source, isSaved, onSave, onClose }: Readi
       <div class={styles.inner}>
         <div class={styles.toolbar}>
           <button class={styles.backBtn} onClick={onClose} aria-label="Back to stream">
-            ← Stream
+            <IconArrowLeft /> Stream
           </button>
           <div class={styles.toolbarRight}>
             <button
@@ -125,7 +168,9 @@ export function ReadingView({ article, source, isSaved, onSave, onClose }: Readi
               aria-label={copied ? 'Link copied' : 'Share article'}
               title={copied ? 'Copied!' : 'Share'}
             >
-              {copied ? '✓ Copied' : (
+              {copied ? (
+                <><IconCheck /> Copied</>
+              ) : (
                 <>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" aria-hidden="true" class={styles.shareBtnIcon}>
                     <circle cx="18" cy="5" r="3"/>
@@ -145,7 +190,7 @@ export function ReadingView({ article, source, isSaved, onSave, onClose }: Readi
                 aria-label={isSaved ? 'Saved' : 'Save to Read Later'}
                 aria-pressed={isSaved}
               >
-                {isSaved ? '\u2665' : '\u2661'}
+                {isSaved ? <IconHeartFilled /> : <IconHeartOutline />}
               </button>
             )}
             <a
@@ -154,7 +199,7 @@ export function ReadingView({ article, source, isSaved, onSave, onClose }: Readi
               target="_blank"
               rel="noopener noreferrer"
             >
-              Open original ↗
+              Open original <IconExternalLink />
             </a>
           </div>
         </div>

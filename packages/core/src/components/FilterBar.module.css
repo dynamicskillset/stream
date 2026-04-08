@@ -86,6 +86,7 @@
 }
 
 .pill {
+  position: relative;
   min-height: 36px;
   padding: 0.1875rem 0.625rem;
   font-family: var(--font-sans);
@@ -99,6 +100,13 @@
   white-space: nowrap;
   flex-shrink: 0;
   transition: background var(--transition), color var(--transition), border-color var(--transition);
+}
+
+/* Expand touch target to 44px without affecting layout */
+.pill::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
 }
 
 .pill:hover {

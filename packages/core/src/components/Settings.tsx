@@ -724,7 +724,11 @@ export function Settings({ sources, categories, adapter, onUpdate, onBulkVelocit
               <div class={`${styles.aiUndoBar} ${undoFading ? styles.aiUndoBarFading : ''}`}>
                 <span>Velocity updated for <strong>{undoVelocity.label}</strong></span>
                 <button class={styles.suggestionApply} onClick={handleUndoVelocity}>Undo</button>
-                <button class={styles.aiUndoDismiss} onClick={() => setUndoVelocity(null)} aria-label="Dismiss">×</button>
+                <button class={styles.aiUndoDismiss} onClick={() => setUndoVelocity(null)} aria-label="Dismiss">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
+                </button>
               </div>
             )}
             {aiVelocitySuggestions.length > 0 && (

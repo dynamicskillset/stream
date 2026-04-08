@@ -45,6 +45,9 @@
 
 .backBtn {
   position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
   font-family: var(--font-sans);
   font-size: 0.8125rem;
   font-weight: 500;
@@ -68,6 +71,9 @@
 }
 
 .shareBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
   font-family: var(--font-sans);
   font-size: 0.8125rem;
   color: var(--text-muted);
@@ -93,6 +99,9 @@
 .saveBtnActive  { color: var(--accent-saved); }
 
 .externalLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
   font-family: var(--font-sans);
   font-size: 0.8125rem;
   color: var(--text-muted);

@@ -5,6 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Stream</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <!-- Synchronous theme/prefs bootstrap: prevents flash of wrong theme on load -->
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem('stream-theme');
+          if (t === 'ink') document.documentElement.setAttribute('data-theme', 'ink');
+          var d = JSON.parse(localStorage.getItem('stream-display') || '{}');
+          if (d.accentColor && d.accentColor !== 'frost')
+            document.documentElement.setAttribute('data-accent', d.accentColor);
+          var sizes = { small: '14px', large: '18px' };
+          if (sizes[d.textSize]) document.documentElement.style.fontSize = sizes[d.textSize];
+          var fades = { none: '0', subtle: '0.35', full: '0.7' };
+          if (fades[d.fadeLevel] !== undefined)
+            document.documentElement.style.setProperty('--fade-max', fades[d.fadeLevel]);
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="app"></div>

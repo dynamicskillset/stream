@@ -2,6 +2,22 @@ import { useRef, useState, useEffect } from 'preact/hooks';
 import type { Category } from '../types.js';
 import styles from './FilterBar.module.css';
 
+function IconChevronLeft() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <polyline points="15 18 9 12 15 6"/>
+    </svg>
+  );
+}
+
+function IconChevronRight() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <polyline points="9 18 15 12 9 6"/>
+    </svg>
+  );
+}
+
 interface FilterBarProps {
   categories: Category[];
   activeCategory: string | null;
@@ -60,7 +76,7 @@ export function FilterBar({
       {hasCats && (
         <nav aria-label="Filter by category" class={`${styles.catsWrap} ${canScrollLeft ? styles.fadeLeft : ''} ${canScrollRight ? styles.fadeRight : ''}`}>
           {canScrollLeft && (
-            <button class={`${styles.scrollArrow} ${styles.scrollArrowLeft}`} onClick={() => scrollBy(-1)} aria-label="Scroll categories left">‹</button>
+            <button class={`${styles.scrollArrow} ${styles.scrollArrowLeft}`} onClick={() => scrollBy(-1)} aria-label="Scroll categories left"><IconChevronLeft /></button>
           )}
           <div ref={catsRef} class={styles.cats}>
             <button
@@ -82,7 +98,7 @@ export function FilterBar({
             ))}
           </div>
           {canScrollRight && (
-            <button class={`${styles.scrollArrow} ${styles.scrollArrowRight}`} onClick={() => scrollBy(1)} aria-label="Scroll categories right">›</button>
+            <button class={`${styles.scrollArrow} ${styles.scrollArrowRight}`} onClick={() => scrollBy(1)} aria-label="Scroll categories right"><IconChevronRight /></button>
           )}
         </nav>
       )}

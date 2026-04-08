@@ -9,8 +9,6 @@ import { Settings } from './components/Settings.js';
 import { ReadingView } from './components/ReadingView.js';
 import { KeyboardHelp } from './components/KeyboardHelp.js';
 import { FilterBar } from './components/FilterBar.js';
-import { FreshRSSAdapter } from './adapters/freshrss.js';
-import { FeedbinAdapter } from './adapters/feedbin.js';
 import { loadDisplayPrefs, applyDisplayPrefs } from './displayPrefs.js';
 import { activeMutedIds, muteSource, unmuteSource, cleanExpiredMutes, getMutedSources, type MuteEntry } from './mutedSources.js';
 import { purgeDismissed } from './dismissedArticles.js';
@@ -355,21 +353,25 @@ export function App() {
     setMutedEntries(getMutedSources());
   }, []);
 
-  // Auto-connect on mount if credentials are saved
+  // Auto-connect on mount if credentials are saved.
+  // Adapters are dynamically imported so only the one in use is parsed at startup.
   useEffect(() => {
     const saved = loadSavedConnection();
     if (!saved) return;
 
-    const adapter = saved.adapterId === 'feedbin'
-      ? new FeedbinAdapter()
-      : new FreshRSSAdapter();
-    adapter.authenticate(saved).then(result => {
-      if (result.success) {
-        loadData(adapter);
-      } else {
-        setState({ status: 'connect', error: 'Session expired. Please reconnect.' });
-      }
-    }).catch(() => {
+    const importAdapter = saved.adapterId === 'feedbin'
+      ? import('./adapters/feedbin.js').then(m => new m.FeedbinAdapter())
+      : import('./adapters/freshrss.js').then(m => new m.FreshRSSAdapter());
+
+    importAdapter.then(adapter =>
+      adapter.authenticate(saved).then(result => {
+        if (result.success) {
+          loadData(adapter);
+        } else {
+          setState({ status: 'connect', error: 'Session expired. Please reconnect.' });
+        }
+      })
+    ).catch(() => {
       setState({ status: 'connect', error: 'Could not reach your server.' });
     });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -462,16 +464,41 @@ export function App() {
 
 function LoadingView() {
   return (
+    <div role="status" aria-label="Loading your stream" style={{ maxWidth: '680px', margin: '0 auto', padding: '1rem 1rem 5rem' }}>
+      {[0, 1, 2, 3, 4].map(i => (
+        <SkeletonCard key={i} />
+      ))}
+    </div>
+  );
+}
+
+function SkeletonCard() {
+  return (
     <div style={{
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      minHeight: 'calc(100vh - 57px)',
-      fontFamily: 'var(--font-serif)',
-      color: 'var(--text-muted)',
-      fontSize: '1rem',
+      position: 'relative',
+      background: 'var(--surface)',
+      padding: '0.75rem 1rem 0.75rem calc(0.875rem + 4px)',
+      marginBottom: '2px',
+      borderRadius: 'var(--radius)',
+      overflow: 'hidden',
     }}>
-      Loading your stream…
+      {/* age bar */}
+      <div style={{
+        position: 'absolute', left: 0, top: 0, bottom: 0, width: '4px',
+        background: 'var(--border)', borderRadius: 'var(--radius) 0 0 var(--radius)',
+      }} />
+      {/* header row: favicon + source name + time */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', marginBottom: '0.5rem' }}>
+        <div style={{ width: '16px', height: '16px', borderRadius: '2px', background: 'var(--border)', flexShrink: 0 }} class="skeleton-pulse" />
+        <div style={{ width: '90px', height: '10px', borderRadius: '3px', background: 'var(--border)' }} class="skeleton-pulse" />
+        <div style={{ width: '40px', height: '10px', borderRadius: '3px', background: 'var(--border)', marginLeft: 'auto' }} class="skeleton-pulse" />
+      </div>
+      {/* title */}
+      <div style={{ height: '14px', borderRadius: '3px', background: 'var(--border)', marginBottom: '0.375rem' }} class="skeleton-pulse" />
+      <div style={{ height: '14px', borderRadius: '3px', background: 'var(--border)', width: '75%', marginBottom: '0.375rem' }} class="skeleton-pulse" />
+      {/* preview */}
+      <div style={{ height: '12px', borderRadius: '3px', background: 'var(--border)', width: '90%', marginBottom: '0.25rem' }} class="skeleton-pulse" />
+      <div style={{ height: '12px', borderRadius: '3px', background: 'var(--border)', width: '60%' }} class="skeleton-pulse" />
     </div>
   );
 }

@@ -6,8 +6,6 @@ export {
   HALF_LIVES,
   VISIBILITY_THRESHOLD,
 } from './riverEngine.js';
-export { FreshRSSAdapter } from './adapters/freshrss.js';
-export { FeedbinAdapter } from './adapters/feedbin.js';
 export type {
   Article,
   Source,
