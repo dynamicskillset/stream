@@ -12,10 +12,30 @@
     "build": "npm run build -w packages/core && npm run build -w packages/web && npm run build -w packages/extension",
     "build:web": "npm run build -w packages/core && npm run build -w packages/web",
     "build:extension": "npm run build -w packages/core && npm run build -w packages/extension",
-    "package:extension": "npm run build:extension && npm run package -w packages/extension"
+    "package:extension": "npm run build:extension && npm run package -w packages/extension",
+    "size": "npm run build:web && size-limit"
   },
+  "size-limit": [
+    {
+      "name": "Web JS (main bundle)",
+      "path": "packages/web/dist/assets/index-*.js",
+      "limit": "80 kB"
+    },
+    {
+      "name": "Web CSS",
+      "path": "packages/web/dist/assets/index-*.css",
+      "limit": "15 kB"
+    },
+    {
+      "name": "Extension JS (main bundle)",
+      "path": "packages/extension/dist/main.js",
+      "limit": "80 kB"
+    }
+  ],
   "devDependencies": {
     "@preact/preset-vite": "^2.8.0",
+    "@size-limit/file": "^12.0.1",
+    "size-limit": "^12.0.1",
     "typescript": "^5.5.0",
     "vite": "^6.0.0"
   }
