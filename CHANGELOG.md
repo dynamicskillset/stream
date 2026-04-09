@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.3
+
+### Performance
+
+- **Instant startup for returning users** — Stream now remembers your river from your last visit. When you reopen it, your articles appear straight away. Fresh content loads in the background and merges in silently. First-time users and anyone who hasn't used Stream recently still see the loading screen as before.
+
 ## 0.9.2
 
 ### Performance
