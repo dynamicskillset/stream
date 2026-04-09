@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.9.4
+
+### UI
+
+- **Unread counts on category pills** — each category in the filter bar now shows a live count of unread articles (e.g. "Tech 12"), making it easy to spot active categories at a glance without scrolling through all of them.
+- **Category persists across sessions** — the active category is remembered between visits, so opening Stream takes you straight back to where you were.
+- **Active category scrolls into view** — on load, the selected category pill is automatically scrolled into view in the filter bar.
+
 ## 0.9.3
 
 ### Performance
