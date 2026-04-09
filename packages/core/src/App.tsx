@@ -10,6 +10,7 @@ import { ReadingView } from './components/ReadingView.js';
 import { KeyboardHelp } from './components/KeyboardHelp.js';
 import { FilterBar } from './components/FilterBar.js';
 import { loadDisplayPrefs, applyDisplayPrefs } from './displayPrefs.js';
+import { saveCache, loadCache } from './articleCache.js';
 import { activeMutedIds, muteSource, unmuteSource, cleanExpiredMutes, getMutedSources, type MuteEntry } from './mutedSources.js';
 import { purgeDismissed } from './dismissedArticles.js';
 import { isPaused, pauseRiver, resumeRiver, effectiveNow } from './quietHours.js';
@@ -150,20 +151,48 @@ export function App() {
   }, []);
 
   const loadData = useCallback(async (adapter: StreamAdapter) => {
-    setState({ status: 'loading', adapter });
-    try {
-      const rawSources = await adapter.fetchSources();
-      const sources    = applySavedVelocity(rawSources, loadVelocityConfig());
-      const [articles, categories] = await Promise.all([
-        fetchAllArticles(adapter, sources),
-        adapter.fetchCategories().catch(() => [] as Category[]),
-      ]);
-      setState({ status: 'ready', adapter, sources, articles, categories });
-    } catch (err) {
-      setState({
-        status: 'error',
-        message: err instanceof Error ? err.message : 'Failed to load articles.',
-      });
+    const cache = loadCache();
+
+    if (cache) {
+      // Serve cached river immediately — returning users see content at once
+      setState({ status: 'ready', adapter, sources: cache.sources, articles: cache.articles, categories: cache.categories });
+      setRefreshing(true);
+      try {
+        const rawSources = await adapter.fetchSources();
+        const sources    = applySavedVelocity(rawSources, loadVelocityConfig());
+        const [articles, categories] = await Promise.all([
+          fetchAllArticles(adapter, sources),
+          adapter.fetchCategories().catch(() => [] as Category[]),
+        ]);
+        saveCache({ articles, sources, categories });
+        setState(prev =>
+          prev.status === 'ready'
+            ? { ...prev, sources, articles, categories }
+            : prev,
+        );
+      } catch {
+        // Network failure — keep showing cached data, user can manually refresh
+      } finally {
+        setRefreshing(false);
+      }
+    } else {
+      // First run or cache cleared — show loading skeleton until data arrives
+      setState({ status: 'loading', adapter });
+      try {
+        const rawSources = await adapter.fetchSources();
+        const sources    = applySavedVelocity(rawSources, loadVelocityConfig());
+        const [articles, categories] = await Promise.all([
+          fetchAllArticles(adapter, sources),
+          adapter.fetchCategories().catch(() => [] as Category[]),
+        ]);
+        saveCache({ articles, sources, categories });
+        setState({ status: 'ready', adapter, sources, articles, categories });
+      } catch (err) {
+        setState({
+          status: 'error',
+          message: err instanceof Error ? err.message : 'Failed to load articles.',
+        });
+      }
     }
   }, []);
 
@@ -287,6 +316,7 @@ export function App() {
       );
       const articles = await fetchAllArticles(s.adapter, sources);
       const categories = await s.adapter.fetchCategories().catch(() => [] as Category[]);
+      saveCache({ articles, sources, categories });
       setState(prev =>
         prev.status === 'ready'
           ? { ...prev, sources, articles, categories }
