@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.9.5
+
+### Accessibility
+
+- **Skip to content link** — keyboard users can now press Tab on first load to skip the header and jump directly to the article stream.
+- **Screen reader announcement on refresh** — when new articles arrive in the background, assistive technology is notified with "Stream updated".
+
 ## 0.9.4
 
 ### UI
