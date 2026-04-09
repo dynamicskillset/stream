@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'preact/hooks';
 import type { ComponentChildren } from 'preact';
 import type { ResolvedTheme } from '../hooks/useTheme.js';
 import { version } from '../../package.json';
@@ -110,8 +111,20 @@ export function AppShell({
   onTogglePause,
   children,
 }: AppShellProps) {
+  // Announce background refresh completion to screen readers
+  const prevRefreshing = useRef(refreshing);
+  const [announcement, setAnnouncement] = useState('');
+  useEffect(() => {
+    if (prevRefreshing.current === true && refreshing === false) {
+      setAnnouncement('Stream updated');
+      setTimeout(() => setAnnouncement(''), 1000);
+    }
+    prevRefreshing.current = refreshing;
+  }, [refreshing]);
+
   return (
     <>
+      <a href="#main-content" class={styles.skipLink}>Skip to content</a>
       <header class={styles.header}>
         <div class={styles.inner}>
           <div class={styles.brand}>
@@ -180,7 +193,8 @@ export function AppShell({
           <button class={styles.pauseBannerBtn} onClick={onTogglePause}>Resume</button>
         </div>
       )}
-      <main>{children}</main>
+      <div aria-live="polite" aria-atomic="true" class={styles.srOnly}>{announcement}</div>
+      <main id="main-content">{children}</main>
     </>
   );
 }
