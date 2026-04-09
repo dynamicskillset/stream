@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.6
+
+### Testing
+
+- **Playwright E2E test suite** — 10 end-to-end tests covering all critical user flows: article loading, first-run connect screen, reading view (mouse and keyboard), dismiss with undo, save/unsave, settings panel, theme toggle, category filter, and unread filter. Tests run against the production build via `npm run test:e2e`.
+
 ## 0.9.5
 
 ### Accessibility
