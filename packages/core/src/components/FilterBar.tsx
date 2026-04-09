@@ -47,7 +47,8 @@ export function FilterBar({
 
   const hasCats = visibleCats.length > 0;
 
-  const catsRef = useRef<HTMLDivElement>(null);
+  const catsRef    = useRef<HTMLDivElement>(null);
+  const activePillRef = useRef<HTMLButtonElement>(null);
   const [canScrollLeft, setCanScrollLeft]   = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
 
@@ -68,6 +69,11 @@ export function FilterBar({
     return () => { el.removeEventListener('scroll', updateScroll); ro.disconnect(); };
   }, [visibleCats]);
 
+  // Scroll active pill into view when category changes or on first render
+  useEffect(() => {
+    activePillRef.current?.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
+  }, [activeCategory]);
+
   const scrollBy = (dir: -1 | 1) =>
     catsRef.current?.scrollBy({ left: dir * 160, behavior: 'smooth' });
 
@@ -86,16 +92,21 @@ export function FilterBar({
             >
               All
             </button>
-            {visibleCats.map(cat => (
-              <button
-                key={cat.id}
-                class={`${styles.pill} ${activeCategory === cat.id ? styles.active : ''}`}
-                onClick={() => onCategory(activeCategory === cat.id ? null : cat.id)}
-                aria-pressed={activeCategory === cat.id}
-              >
-                {cat.title}
-              </button>
-            ))}
+            {visibleCats.map(cat => {
+              const count   = unreadByCategory?.get(cat.id) ?? 0;
+              const isActive = activeCategory === cat.id;
+              return (
+                <button
+                  key={cat.id}
+                  ref={isActive ? activePillRef : undefined}
+                  class={`${styles.pill} ${isActive ? styles.active : ''}`}
+                  onClick={() => onCategory(isActive ? null : cat.id)}
+                  aria-pressed={isActive}
+                >
+                  {cat.title}{count > 0 && <span class={styles.count} aria-label={`${count} unread`}>{count}</span>}
+                </button>
+              );
+            })}
           </div>
           {canScrollRight && (
             <button class={`${styles.scrollArrow} ${styles.scrollArrowRight}`} onClick={() => scrollBy(1)} aria-label="Scroll categories right"><IconChevronRight /></button>

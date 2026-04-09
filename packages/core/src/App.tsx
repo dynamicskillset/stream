@@ -586,9 +586,13 @@ interface ReadyViewProps {
 }
 
 function ReadyView({ adapter, sources, articles, categories, now, hidden, mutedIds, onMute, expiryDays }: ReadyViewProps) {
+  const CATEGORY_KEY = 'stream-active-category';
+
   const [openArticle, setOpenArticle]       = useState<Article | null>(null);
   const [showHelp, setShowHelp]             = useState(false);
-  const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [activeCategory, setActiveCategory] = useState<string | null>(() => {
+    try { return localStorage.getItem(CATEGORY_KEY) ?? null; } catch { return null; }
+  });
   const [unreadOnly, setUnreadOnly]         = useState(false);
   const [savedOnly, setSavedOnly]           = useState(false);
   const [starredOverrides, setStarredOverrides] = useState<Map<string, boolean>>(new Map());
@@ -701,7 +705,13 @@ function ReadyView({ adapter, sources, articles, categories, now, hidden, mutedI
         unreadOnly={unreadOnly}
         savedOnly={savedOnly}
         unreadByCategory={unreadByCategory}
-        onCategory={setActiveCategory}
+        onCategory={(id) => {
+          setActiveCategory(id);
+          try {
+            if (id) localStorage.setItem(CATEGORY_KEY, id);
+            else localStorage.removeItem(CATEGORY_KEY);
+          } catch { /* quota */ }
+        }}
         onUnreadOnly={setUnreadOnly}
         onSavedOnly={setSavedOnly}
       />
